@@ -1,0 +1,8 @@
+{
+	"id": "Ilysen_ShoppingList",
+	"title": "Shopping List",
+	"description": "Adds a configurable shopping list that'll alert you when a nearby merchant has something from it.",
+	"version": "1.0",
+	"author": "Ava",
+	"previewImage": "preview.png"
+}

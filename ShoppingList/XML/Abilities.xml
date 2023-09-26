@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<activatedabilities>
+	<ability Command="Ilysen_ShoppingList_ConfigureShoppingList">
+		<description>
+			<p>View and configure your shopping list.</p>
+		</description>
+		<UITile Tile="Items/sw_unfurled_scroll1.bmp" Foreground="Y" Detail="G" />
+	</ability>
+</activatedabilities>

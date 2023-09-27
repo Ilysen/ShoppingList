@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<options>
+	<option ID="Ilysen_ShoppingList_HighlightVendorsWithItems"
+		DisplayText="Highlight vendors with shopping list items" Category="Shopping List"
+		Type="Checkbox" Default="Yes">
+	</option>
+</options>

@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using XRL.Core;
-using XRL.Messages;
 
 namespace XRL.World.Parts
 {
 	/// <summary>
-	/// This is a visual part added to any creature that <see cref="Ilysen_ShoppingList_ShoppingListPart"/> flags as having items from the configured shopping list.
+	/// This is a visual part added to any creature that <see cref="Ava_ShoppingList_ShoppingListPart"/> flags as having items from the configured shopping list.
 	/// It is automatically removed if all objects in the list <see cref="CachedObjects"/> (populated on creation) are null or not present in the inventory anymore.
 	/// </summary>
 	[Serializable]
-	public class Ilysen_ShoppingList_ItemIndicator : IPart
+	public class Ava_ShoppingList_Highlighter : IPart
 	{
 		public override void Register(GameObject Object)
 		{
@@ -29,14 +28,17 @@ namespace XRL.World.Parts
 		{
 			if (ShouldUpdateObjectList)
 			{
+				//MessageQueue.AddPlayerMessage($"Updating highlight part for {ParentObject.DisplayName}");
 				foreach (GameObject go in CachedObjects.ToArray())
 					if (go == null || !ParentObject.Inventory.HasObject(go))
 						CachedObjects.Remove(go);
 				if (CachedObjects.Count == 0)
 				{
+					//MessageQueue.AddPlayerMessage($"No more cached objects remaining. Removing.");
 					ParentObject.RemovePart(this);
 					return base.Render(E);
 				}
+				//MessageQueue.AddPlayerMessage($"Continuing with highlight");
 				ShouldUpdateObjectList = false;
 			}
 			if (XRLCore.CurrentFrame % 60 <= 5)

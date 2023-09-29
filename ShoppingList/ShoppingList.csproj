@@ -48,8 +48,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Scripts\ItemIndicator.cs" />
+    <Compile Include="Scripts\Highlighter.cs" />
     <Compile Include="Scripts\LoadGameHandler.cs" />
+    <Compile Include="Scripts\Patches.cs" />
     <Compile Include="Scripts\ShoppingList.cs" />
   </ItemGroup>
   <ItemGroup>

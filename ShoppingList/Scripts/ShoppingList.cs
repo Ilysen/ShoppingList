@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using XRL.Core;
 using XRL.Language;
 using XRL.Liquids;
 using XRL.Messages;
@@ -13,12 +14,12 @@ namespace XRL.World.Parts
 	/// This part is added to the player object and handles all of the logic of the shopping list.
 	/// </summary>
 	[Serializable]
-	public class Ilysen_ShoppingList_ShoppingListPart : IPart
+	public class Ava_ShoppingList_ShoppingListPart : IPart
 	{
 		/// <summary>
 		/// The string command used to open the shopping list menu. Should correspond to the key in Abilities.xml.
 		/// </summary>
-		public static readonly string ShoppingListCommand = "Ilysen_ShoppingList_ConfigureShoppingList";
+		public static readonly string ShoppingListCommand = "Ava_ShoppingList_ConfigureShoppingList";
 
 		/// <summary>
 		/// The <see cref="Guid"/> of the active ability that's used to open the shopping list.
@@ -36,6 +37,34 @@ namespace XRL.World.Parts
 		{
 			RemoveMyActivatedAbility(ref ActivatedAbility, ParentObject);
 			base.Remove();
+		}
+
+		public override bool WantTurnTick()
+		{
+			return deferredObjects.Count > 0;
+		}
+
+		public override void TurnTick(long TurnNumber)
+		{
+			//MessageQueue.AddPlayerMessage($"Turn ticking. Deferred objects count: {deferredObjects.Count}");
+			for (int i = 0; i < deferredObjects.Count; i++)
+			{
+				KeyValuePair<GameObject, Restocker> obj = deferredObjects.ElementAt(i);
+				//MessageQueue.AddPlayerMessage($"  {obj.Key.DisplayName}");
+				if (obj.Key == null || obj.Value == null)
+				{
+					deferredObjects.Remove(obj.Key);
+					continue;
+				}
+				//MessageQueue.AddPlayerMessage($"  Will classify for checking if {obj.Value.NextRestockTick} > {XRLCore.CurrentTurn}");
+				if (obj.Value.NextRestockTick > XRLCore.CurrentTurn)
+				{
+					//MessageQueue.AddPlayerMessage("    Classifies. Removing");
+					CheckObjectInventory(obj.Key);
+					deferredObjects.Remove(obj.Key);
+					continue;
+				}
+			}
 		}
 
 		public override bool WantEvent(int ID, int cascade)
@@ -114,7 +143,7 @@ namespace XRL.World.Parts
 						}
 						goto ConfigureList;
 					case 3:
-						CheckShoppingList(ParentObject.CurrentZone);
+						CheckObjectsInZone(ParentObject.CurrentZone);
 						goto ConfigureList;
 				}
 			}
@@ -124,38 +153,70 @@ namespace XRL.World.Parts
 		public override bool HandleEvent(ZoneActivatedEvent E)
 		{
 			if (Wishlist.Count > 0)
-				CheckShoppingList(E.Zone);
+				CheckObjectsInZone(E.Zone);
 			return base.HandleEvent(E);
 		}
 
-		private void CheckShoppingList(Zone z)
+		/// <summary>
+		/// Checks every object in the provided <see cref="Zone"/> to see if they're stocking anything from the shopping list.
+		/// </summary>
+		private void CheckObjectsInZone(Zone z)
 		{
-			foreach (GameObject go in z.GetObjects().Where(x => x.HasPart<Restocker>() || x.HasPart<GenericInventoryRestocker>()))
+			foreach (GameObject go in z.GetObjects().Where(x => ShouldCheckObject(x)))
+				CheckObjectInventory(go);
+		}
+
+		/// <summary>
+		/// Searches the inventory of the provided <see cref="GameObject"/> to see if there are any matches to our shopping list.
+		/// If there are, then we show a message and apply a highlighter part if the setting is enabled.
+		/// </summary>
+		internal void CheckObjectInventory(GameObject go)
+		{
+			SortedList<string, GameObject> stockedObjects = new SortedList<string, GameObject>();
+			foreach (GameObject go2 in go.Inventory.Objects.Where(x => TradeUI.ValidForTrade(x, go)))
 			{
-				SortedList<string, GameObject> stockedObjects = new SortedList<string, GameObject>();
-				foreach (GameObject go2 in go.Inventory.Objects.Where(x => TradeUI.ValidForTrade(x, go)))
-				{
-					GameObjectBlueprint bp = go2.GetBlueprint();
-					if (!go2.Understood())
-						continue;
-					string goName = go2.an();
-					if (Wishlist.Values.Contains(bp.Name) || Wishlist.Values.Contains(bp.Inherits) && !stockedObjects.Keys.Contains(goName))
-						stockedObjects.Add(goName, go2);
-					else if (go2.LiquidVolume?.Volume > 0)
-					{
-						BaseLiquid primaryLiquid = go2.LiquidVolume.GetPrimaryLiquid();
-						if (Wishlist.Values.Contains(go2.LiquidVolume.GetPrimaryLiquid().ID) && !stockedObjects.Keys.Contains(primaryLiquid.GetName()))
-							stockedObjects.Add(primaryLiquid.GetName(), go2);
-					}
-					else
-						continue;
-				}
-				if (stockedObjects.Count == 0)
+				GameObjectBlueprint bp = go2.GetBlueprint();
+				if (!go2.Understood())
 					continue;
-				MessageQueue.AddPlayerMessage($"{go.The + go.ShortDisplayName} {The.Player.DescribeDirectionToward(go)} is stocking {Grammar.MakeAndList(stockedObjects.Keys.ToArray())} from your shopping list!", "M");
-				if (ShouldHighlight)
-					go.RequirePart<Ilysen_ShoppingList_ItemIndicator>().CachedObjects = stockedObjects.Values.ToList();
+				string goName = go2.an();
+				if (Wishlist.Values.Contains(bp.Name) || Wishlist.Values.Contains(bp.Inherits) && !stockedObjects.Keys.Contains(goName))
+					stockedObjects.Add(goName, go2);
+				else if (go2.LiquidVolume?.Volume > 0)
+				{
+					BaseLiquid primaryLiquid = go2.LiquidVolume.GetPrimaryLiquid();
+					if (Wishlist.Values.Contains(go2.LiquidVolume.GetPrimaryLiquid().ID) && !stockedObjects.Keys.Contains(primaryLiquid.GetName()))
+						stockedObjects.Add(primaryLiquid.GetName(), go2);
+				}
+				else
+					continue;
 			}
+			if (stockedObjects.Count == 0)
+			{
+				go.RemovePart<Ava_ShoppingList_Highlighter>();
+				return;
+			}
+			MessageQueue.AddPlayerMessage($"{go.The + go.ShortDisplayName} {The.Player.DescribeDirectionToward(go)} is stocking {Grammar.MakeAndList(stockedObjects.Keys.ToArray())} from your shopping list!", "M");
+			if (ShouldHighlight)
+				go.RequirePart<Ava_ShoppingList_Highlighter>().CachedObjects = stockedObjects.Values.ToList();
+		}
+
+		/// <summary>
+		/// Determines if the provided <see cref="GameObject"/> should have their inventory checked for shopping list items.
+		/// If they have a <see cref="Restocker"/> or <see cref="GenericInventoryRestocker"/> part and are not about to restock, this returns true.
+		/// </summary>
+		private bool ShouldCheckObject(GameObject go)
+		{
+			Restocker res = go.GetPart<Restocker>();
+			if (res != null && res.NextRestockTick <= XRLCore.CurrentTurn)
+			{
+				//MessageQueue.AddPlayerMessage($"{go.DisplayName} is about to restock and so we are moving them to the deferred list ");
+				deferredObjects[go] = res;
+				return false;
+			}
+			GenericInventoryRestocker gir = go.GetPart<GenericInventoryRestocker>();
+			if (gir != null && gir.RestockFrequency <= XRLCore.CurrentTurn - gir.LastRestockTick)
+				return false;
+			return res != null || gir != null;
 		}
 
 		/// <summary>
@@ -185,7 +246,17 @@ namespace XRL.World.Parts
 			return toReturn;
 		}
 
-		private bool ShouldHighlight => Options.GetOption("Ilysen_ShoppingList_HighlightVendorsWithItems").EqualsNoCase("Yes");
+		private bool ShouldHighlight => Options.GetOption("Ava_ShoppingList_HighlightVendorsWithItems").EqualsNoCase("Yes");
+
+		/// <summary>
+		/// This is a workaround for the current inability to effectively track when a <see cref="Restocker"/> restocks its inventory.
+		/// If the part is about to restock it, we add it to this list, and then iterate through it every turn thereafter,
+		/// checking the restock time of each associated part and manually triggering a list check on the associated <see cref="GameObject"/>
+		/// if it's no longer about to fire (i.e. we can safely assume a restock has happened).
+		/// <br/><br/>
+		/// Ideally, this'll be removed if we ever get an event to track restocks.
+		/// </summary>
+		private readonly Dictionary<GameObject, Restocker> deferredObjects = new Dictionary<GameObject, Restocker>();
 
 		/// <summary>
 		/// A list of blueprint paths/liquid IDs associated to their relevant display names.

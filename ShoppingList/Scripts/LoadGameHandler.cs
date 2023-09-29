@@ -10,7 +10,7 @@ namespace Ilysen.ShoppingList.Scripts
 		[CallAfterGameLoaded]
 		public static void AfterLoaded()
 		{
-			The.Player?.RequirePart<Ilysen_ShoppingList_ShoppingListPart>();
+			The.Player?.RequirePart<Ava_ShoppingList_ShoppingListPart>();
 		}
 	}
 
@@ -19,7 +19,7 @@ namespace Ilysen.ShoppingList.Scripts
 	{
 		public void mutate(GameObject player)
 		{
-			player.RequirePart<Ilysen_ShoppingList_ShoppingListPart>();
+			player.RequirePart<Ava_ShoppingList_ShoppingListPart>();
 		}
 	}
 }

@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <activatedabilities>
-	<ability Command="Ilysen_ShoppingList_ConfigureShoppingList">
+	<ability Command="Ava_ShoppingList_ConfigureShoppingList">
 		<description>
 			<p>View and configure your shopping list.</p>
 		</description>

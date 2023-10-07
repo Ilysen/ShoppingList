@@ -91,10 +91,11 @@ namespace XRL.World.Parts
 						goto ConfigureList;
 					case 1:
 					QueryBlueprint:
-						string s = Popup.AskString("Enter a query. Enter \"help\" or \"?\" for more info.", ReturnNullForEscape: true);
+						string s = Popup.AskString("Enter a query. Enter \"help\" or \"?\" for more info.", ReturnNullForEscape: true).ToLower();
 						if (s.IsNullOrEmpty())
 							goto ConfigureList;
-						if (s.EqualsNoCase("help") || s == "?")
+						// Check for an information query and enter the documentation submenu until manually exited
+						if (s.Equals("help") || s.Equals("?"))
 						{
 						Documentation:
 							switch (Popup.ShowOptionList("What would you like help with?", new List<string> { "Searching for {{rules|items}}", "Searching for {{rules|data disks}}", "Searching for {{rules|items with a certain mod}}", "Searching for {{rules|pure liquids}}" }, AllowEscape: true))
@@ -114,7 +115,8 @@ namespace XRL.World.Parts
 							}
 							goto ConfigureList;
 						}
-						if (s.ToLower().StartsWith("modded:"))
+						// Check specifiers, starting with modded items
+						if (s.StartsWith("modded:"))
 						{
 							string itemMod = s.Split(':')[1];
 							if (FindTinkerMod(itemMod, out TinkerData td))
@@ -129,7 +131,8 @@ namespace XRL.World.Parts
 							Popup.Show($"Item mod not found for query '{s}'. Check your spelling or narrow your search.");
 							goto QueryBlueprint;
 						}
-						if (FindTinkerMod(s, out TinkerData data) && data.Type == "Mod")
+						// Check for an exact match with a tinker mod that can be applied by the player
+						if (FindTinkerMod(s, out TinkerData data) && data.Type == "Mod" && ModificationFactory.ModsByPart[data.PartName].TinkerAllowed)
 						{
 							if (Popup.ShowYesNo("Add data disks for the {{W|" + data.DisplayName + "}} mod to your shopping list?") == DialogResult.Yes)
 							{
@@ -138,6 +141,7 @@ namespace XRL.World.Parts
 							}
 							goto ConfigureList;
 						}
+						// Check for an exact match with a liquid type
 						if (FindLiquid(s, out BaseLiquid liquid))
 						{
 							string liquidName = liquid.GetName();
@@ -148,6 +152,7 @@ namespace XRL.World.Parts
 							}
 							goto ConfigureList;
 						}
+						// If all else fails, perform a fuzzy search for a valid object
 						if (FindBlueprint(s, out WishResult wr, out GameObjectBlueprint bp))
 						{
 							string displayName = GetNameFor(bp);
@@ -171,11 +176,11 @@ namespace XRL.World.Parts
 										break;
 									case 1:
 										AddToWishlist(displayName, bp.Name);
-										AddToWishlist($"data disk: {displayName}", $"DataDisk_{bp.Name}");
+										AddToWishlist($"data disk: {bp.DisplayName()}", $"DataDisk_{bp.Name}");
 										Popup.Show($"Added {displayName} (item and data disk) to your shopping list.");
 										break;
 									case 2:
-										AddToWishlist($"data disk: {displayName}", $"DataDisk_{bp.Name}");
+										AddToWishlist($"data disk: {bp.DisplayName()}", $"DataDisk_{bp.Name}");
 										Popup.Show($"Added data disks for {displayName} to your shopping list.");
 										break;
 								}
@@ -334,7 +339,7 @@ namespace XRL.World.Parts
 		/// </summary>
 		private bool FindLiquid(string s, out BaseLiquid liquid)
 		{
-			IEnumerable<BaseLiquid> liquidMatches = LiquidVolume.getAllLiquids().Where(x => x.ID.ToLower() == s.ToLower() || x.Name.Strip().ToLower() == s.ToLower());
+			IEnumerable<BaseLiquid> liquidMatches = LiquidVolume.getAllLiquids().Where(x => x.ID.ToLower() == s || x.Name.Strip().ToLower() == s);
 			if (liquidMatches.Count() > 0)
 			{
 				liquid = liquidMatches.ElementAt(0);
@@ -344,11 +349,14 @@ namespace XRL.World.Parts
 			return false;
 		}
 
+		/// <summary>
+		/// Checks if the provided string equals the ID or stripped display name of a tinkerable item mod.
+		/// </summary>
 		private bool FindTinkerMod(string s, out TinkerData data)
 		{
 			foreach (TinkerData td in TinkerData.TinkerRecipes)
 			{
-				if (td.Type == "Mod" && td.PartName.ToLower().Contains(s.ToLower()) || td.DisplayName.Strip().ToLower().Contains(s.ToLower()))
+				if (td.Type == "Mod" && td.PartName.ToLower().Contains(s) || td.DisplayName.Strip().ToLower().Contains(s))
 				{
 					data = td;
 					return true;
@@ -358,6 +366,10 @@ namespace XRL.World.Parts
 			return false;
 		}
 
+		/// <summary>
+		/// Attempts to find a valid object blueprint through WishSearcher's blueprint search algorithm.
+		/// Only results with zero negative marks whose blueprints are takeable and not creatures will be selected.
+		/// </summary>
 		private bool FindBlueprint(string s, out WishResult wr, out GameObjectBlueprint bp)
 		{
 			WishResult foundResult = WishSearcher.SearchForBlueprint(s);
@@ -384,10 +396,19 @@ namespace XRL.World.Parts
 			string toReturn = bp.DisplayName();
 			if (bp.HasPart("CyberneticsBaseItem"))
 				toReturn = "[{{W|Implant}}] - " + toReturn;
-			Gender g = Gender.Genders[bp.GetTag("Gender")];
-			return g != null && g.Plural ? toReturn : Grammar.Pluralize(toReturn);
+			else
+			{
+				Gender g = Gender.Genders[bp.GetTag("Gender")];
+				if (g != null && g.Plural)
+					toReturn = Grammar.Pluralize(toReturn);
+			}
+			return toReturn;
 		}
 
+		/// <summary>
+		/// Adds a unique entry to the wishlist with a provided display name and value.
+		/// This is effectively a wrapper for <c>Wishlist.Add(key, value)</c> but with a check to ensure no duplicates.
+		/// </summary>
 		private void AddToWishlist(string key, string value)
 		{
 			if (!Wishlist.ContainsValue(value))

@@ -5,9 +5,9 @@ using XRL.Core;
 using XRL.Language;
 using XRL.Liquids;
 using XRL.Messages;
+using XRL.Rules;
 using XRL.UI;
 using XRL.World.Encounters.EncounterObjectBuilders;
-using XRL.World.Tinkering;
 
 namespace XRL.World.Parts
 {
@@ -15,7 +15,7 @@ namespace XRL.World.Parts
 	/// This part is added to the player object and handles all of the logic of the shopping list.
 	/// </summary>
 	[Serializable]
-	public class Ava_ShoppingList_ShoppingListPart : IPart
+	public class Ava_ShoppingList_ShoppingListPart : IPlayerPart
 	{
 		/// <summary>
 		/// The string command used to open the shopping list menu. Should correspond to the key in Abilities.xml.
@@ -119,12 +119,12 @@ namespace XRL.World.Parts
 						if (s.StartsWith("modded:"))
 						{
 							string itemMod = s.Split(':')[1];
-							if (FindTinkerMod(itemMod, out TinkerData td))
+							if (FindTinkerMod(itemMod, out ModEntry me, false))
 							{
-								if (Popup.ShowYesNo("Add items modded to be {{W|" + td.DisplayName + "}} to your shopping list?\n\n" + td.Description) == DialogResult.Yes)
+								if (Popup.ShowYesNo("Add items modded to be {{W|" + me.TinkerDisplayName + "}} to your shopping list?") == DialogResult.Yes)
 								{
-									AddToWishlist("Items modded to be {{W|" + td.DisplayName + "}}", $"Modded_{td.PartName}");
-									Popup.Show("Added items modded to be {{W|" + td.DisplayName + "}} to your shopping list.");
+									AddToWishlist("Items modded to be {{W|" + me.TinkerDisplayName + "}}", $"Modded_{me.Part}");
+									Popup.Show("Added items modded to be {{W|" + me.TinkerDisplayName + "}} to your shopping list.");
 								}
 								goto ConfigureList;
 							}
@@ -132,12 +132,12 @@ namespace XRL.World.Parts
 							goto QueryBlueprint;
 						}
 						// Check for an exact match with a tinker mod that can be applied by the player
-						if (FindTinkerMod(s, out TinkerData data) && data.Type == "Mod" && ModificationFactory.ModsByPart[data.PartName].TinkerAllowed)
+						if (FindTinkerMod(s, out ModEntry data))
 						{
-							if (Popup.ShowYesNo("Add data disks for the {{W|" + data.DisplayName + "}} mod to your shopping list?") == DialogResult.Yes)
+							if (Popup.ShowYesNo("Add data disks for the {{W|" + data.TinkerDisplayName + "}} mod to your shopping list?") == DialogResult.Yes)
 							{
-								AddToWishlist("data disk: [{{W|Item mod}}] - {{C|" + data.DisplayName + "}}", data.PartName);
-								Popup.Show("Added data disks for the {{W|" + data.DisplayName + "}} mod to your shopping list.");
+								AddToWishlist("data disk: [{{W|Item mod}}] - {{C|" + data.TinkerDisplayName + "}}", data.Part);
+								Popup.Show("Added data disks for the {{W|" + data.TinkerDisplayName + "}} mod to your shopping list.");
 							}
 							goto ConfigureList;
 						}
@@ -211,7 +211,7 @@ namespace XRL.World.Parts
 						CheckObjectsInZone(ParentObject.CurrentZone);
 						goto ConfigureList;
 					case 4:
-						string importedCode = Popup.AskString("Paste a code here to import it into the list. {{r|Codes are not validated, and modifying them will cause erratic behavior.}}");
+						string importedCode = Popup.AskString("Paste a code here to import it into the list. {{r|Codes are not validated for bad formatting, so modifying them may cause erratic behavior.}}");
 						if (!importedCode.IsNullOrEmpty())
 						{
 							List<string> newlyAdded = new List<string>();
@@ -273,7 +273,7 @@ namespace XRL.World.Parts
 			foreach (GameObject go2 in go.Inventory.Objects.Where(x => TradeUI.ValidForTrade(x, go)))
 			{
 				GameObjectBlueprint bp = go2.GetBlueprint();
-				if (!go2.Understood())
+				if (!go2.Understood() || !go2.WillTrade())
 					continue;
 				string goName = go2.an();
 				if (Wishlist.Values.Contains(bp.Name) || Wishlist.Values.Contains(bp.Inherits) && !stockedObjects.Keys.Contains(goName))
@@ -352,13 +352,15 @@ namespace XRL.World.Parts
 		/// <summary>
 		/// Checks if the provided string equals the ID or stripped display name of a tinkerable item mod.
 		/// </summary>
-		private bool FindTinkerMod(string s, out TinkerData data)
+		private bool FindTinkerMod(string s, out ModEntry data, bool onlyCanApply = true)
 		{
-			foreach (TinkerData td in TinkerData.TinkerRecipes)
+			foreach (ModEntry me in ModificationFactory.ModList)
 			{
-				if (td.Type == "Mod" && td.PartName.ToLower().Contains(s) || td.DisplayName.Strip().ToLower().Contains(s))
+				if (onlyCanApply && !me.TinkerAllowed)
+					continue;
+				if (me.Part.ToLower().Contains(s) || me.TinkerDisplayName.Strip().ToLower().Contains(s))
 				{
-					data = td;
+					data = me;
 					return true;
 				}
 			}
@@ -399,7 +401,7 @@ namespace XRL.World.Parts
 			else
 			{
 				Gender g = Gender.Genders[bp.GetTag("Gender")];
-				if (g != null && g.Plural)
+				if (g == null || !g.Plural)
 					toReturn = Grammar.Pluralize(toReturn);
 			}
 			return toReturn;

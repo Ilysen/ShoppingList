@@ -249,7 +249,7 @@ namespace XRL.World.Parts
 
 		public override bool HandleEvent(ZoneActivatedEvent E)
 		{
-			if (Wishlist.Count > 0)
+			if (Wishlist.Count > 0 && E.Zone == The.ActiveZone)
 				CheckObjectsInZone(E.Zone);
 			return base.HandleEvent(E);
 		}

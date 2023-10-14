@@ -17,7 +17,8 @@ namespace Ava.ShoppingList.HarmonyPatches
 		[HarmonyPatch(nameof(GenericInventoryRestocker.PerformStock))]
 		static void PerformStockPatch(GenericInventoryRestocker __instance)
 		{
-			The.Player?.GetPart<Ava_ShoppingList_ShoppingListPart>()?.CheckObjectInventory(__instance.ParentObject);
+			if (The.Player != null && The.Player.TryGetPart(out Ava_ShoppingList_ShoppingListPart slp) && The.ActiveZone == __instance.ParentObject.CurrentZone)
+				slp.CheckObjectInventory(__instance.ParentObject);
 		}
 	}
 }

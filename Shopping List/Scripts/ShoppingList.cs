@@ -115,15 +115,19 @@ namespace XRL.World.Parts
 							}
 							goto ConfigureList;
 						}
+						string display;
+						string key;
 						// Check specifiers, starting with modded items
 						if (s.StartsWith("modded:"))
 						{
 							string itemMod = s.Split(':')[1];
 							if (FindTinkerMod(itemMod, out ModEntry me, false))
 							{
+								key = $"Modded:{me.Part}";
+								display = GetDisplayName(key);
 								if (Popup.ShowYesNo("Add items modded to be {{W|" + me.TinkerDisplayName + "}} to your shopping list?") == DialogResult.Yes)
 								{
-									AddToWishlist("Items modded to be {{W|" + me.TinkerDisplayName + "}}", $"Modded_{me.Part}");
+									AddToWishlist(display, key);
 									Popup.Show("Added items modded to be {{W|" + me.TinkerDisplayName + "}} to your shopping list.");
 								}
 								goto ConfigureList;
@@ -134,9 +138,11 @@ namespace XRL.World.Parts
 						// Check for an exact match with a tinker mod that can be applied by the player
 						if (FindTinkerMod(s, out ModEntry data))
 						{
+							key = $"ModDisk:{data.Part}";
+							display = GetDisplayName(data);
 							if (Popup.ShowYesNo("Add data disks for the {{W|" + data.TinkerDisplayName + "}} mod to your shopping list?") == DialogResult.Yes)
 							{
-								AddToWishlist("data disk: [{{W|Item mod}}] - {{C|" + data.TinkerDisplayName + "}}", data.Part);
+								AddToWishlist(display, key);
 								Popup.Show("Added data disks for the {{W|" + data.TinkerDisplayName + "}} mod to your shopping list.");
 							}
 							goto ConfigureList;
@@ -144,44 +150,48 @@ namespace XRL.World.Parts
 						// Check for an exact match with a liquid type
 						if (FindLiquid(s, out BaseLiquid liquid))
 						{
-							string liquidName = liquid.GetName();
-							if (Popup.ShowYesNo($"Add {liquidName} to your shopping list?") == DialogResult.Yes)
+							key = liquid.ID;
+							display = GetDisplayName(liquid);
+							if (Popup.ShowYesNo($"Add {display} to your shopping list?") == DialogResult.Yes)
 							{
-								AddToWishlist(liquidName, liquid.ID);
-								Popup.Show($"Added {liquidName} to your shopping list.");
+								AddToWishlist(display, key);
+								Popup.Show($"Added {display} to your shopping list.");
 							}
 							goto ConfigureList;
 						}
 						// If all else fails, perform a fuzzy search for a valid object
-						if (FindBlueprint(s, out WishResult wr, out GameObjectBlueprint bp))
+						if (FindBlueprint(s, out GameObjectBlueprint bp))
 						{
-							string displayName = GetNameFor(bp);
+							display = GetDisplayName(bp);
+							key = bp.Name;
 							bool canBeDisked = bp.GetPartParameter<bool>("TinkerItem", "CanBuild");
 							if (!canBeDisked)
 							{
-								if (Popup.ShowYesNo($"Add {displayName} to your shopping list?") == DialogResult.Yes)
+								if (Popup.ShowYesNo($"Add {display} to your shopping list?") == DialogResult.Yes)
 								{
-									AddToWishlist(displayName, bp.Name);
-									Popup.Show($"Added {displayName} to your shopping list.");
+									AddToWishlist(display, key);
+									Popup.Show($"Added {display} to your shopping list.");
 								}
 							}
 							else
 							{
-								int result = Popup.ShowOptionList($"Add {displayName} to your shopping list?", new List<string> { "Item only", "Item or data disk", "Data disk only" }, AllowEscape: true);
+								int result = Popup.ShowOptionList($"Add {display} to your shopping list?", new List<string> { "Item only", "Item or data disk", "Data disk only" }, AllowEscape: true);
+								string diskId = $"ItemDisk:{bp.Name}";
+								string diskName = GetDisplayName(diskId);
 								switch (result)
 								{
 									case 0:
-										AddToWishlist(displayName, bp.Name);
-										Popup.Show($"Added {displayName} to your shopping list.");
+										AddToWishlist(display, bp.Name);
+										Popup.Show($"Added {display} to your shopping list.");
 										break;
 									case 1:
-										AddToWishlist(displayName, bp.Name);
-										AddToWishlist($"data disk: {bp.DisplayName()}", $"DataDisk_{bp.Name}");
-										Popup.Show($"Added {displayName} (item and data disk) to your shopping list.");
+										AddToWishlist(display, bp.Name);
+										AddToWishlist(diskName, diskId);
+										Popup.Show($"Added {display} (item and data disk) to your shopping list.");
 										break;
 									case 2:
-										AddToWishlist($"data disk: {bp.DisplayName()}", $"DataDisk_{bp.Name}");
-										Popup.Show($"Added data disks for {displayName} to your shopping list.");
+										AddToWishlist(diskName, diskId);
+										Popup.Show($"Added data disks for {display} to your shopping list.");
 										break;
 								}
 							}
@@ -202,8 +212,8 @@ namespace XRL.World.Parts
 							if (toRemove.Count > 0)
 							{
 								Popup.Show($"Removed the following from your shopping list:\n\n{string.Join("\n", toRemove)}");
-								foreach (string key in toRemove)
-									Wishlist.Remove(key);
+								foreach (string removeKey in toRemove)
+									Wishlist.Remove(removeKey);
 							}
 						}
 						goto ConfigureList;
@@ -295,9 +305,9 @@ namespace XRL.World.Parts
 						continue;
 					}
 				}
-				foreach (string modName in Wishlist.Values.Where(x => x.StartsWith("Modded_")))
+				foreach (string modName in Wishlist.Values.Where(x => x.StartsWith("Modded:")))
 				{
-					if (go2.HasPart(modName.Replace("Modded_", "")))
+					if (go2.HasPart(modName.Replace("Modded:", "")))
 					{
 						stockedObjects.Add(goName, go2);
 						break;
@@ -372,19 +382,17 @@ namespace XRL.World.Parts
 		/// Attempts to find a valid object blueprint through WishSearcher's blueprint search algorithm.
 		/// Only results with zero negative marks whose blueprints are takeable and not creatures will be selected.
 		/// </summary>
-		private bool FindBlueprint(string s, out WishResult wr, out GameObjectBlueprint bp)
+		private bool FindBlueprint(string s, out GameObjectBlueprint bp)
 		{
 			WishResult foundResult = WishSearcher.SearchForBlueprint(s);
 			if (!foundResult.Result.IsNullOrEmpty() && foundResult.NegativeMarks == 0)
 			{
-				wr = foundResult;
-				if (GameObjectFactory.Factory.Blueprints.TryGetValue(wr.Result, out GameObjectBlueprint blueprint) && blueprint.GetPartParameter("Physics", "Takeable", true) && !blueprint.HasTag("Creature"))
+				if (GameObjectFactory.Factory.Blueprints.TryGetValue(foundResult.Result, out GameObjectBlueprint blueprint) && blueprint.GetPartParameter("Physics", "Takeable", true) && !blueprint.HasTag("Creature"))
 				{
 					bp = blueprint;
 					return true;
 				}
 			}
-			wr = null;
 			bp = null;
 			return false;
 		}
@@ -405,6 +413,41 @@ namespace XRL.World.Parts
 					toReturn = Grammar.Pluralize(toReturn);
 			}
 			return toReturn;
+		}
+
+		private string GetDisplayName(object o)
+		{
+			if (o is GameObjectBlueprint bp)
+				return GetNameFor(bp);
+			if (o is ModEntry me)
+				return me.TinkerDisplayName;
+			if (o is BaseLiquid bl)
+				return bl.Name;
+			if (o is string s)
+			{
+				string[] split = s.Split(':');
+				if (s.StartsWith("Liquid:"))
+				{
+					if (FindLiquid(split[1], out BaseLiquid liquid))
+						return liquid.GetName();
+				}
+				if (s.StartsWith("Modded:"))
+				{
+					if (FindTinkerMod(split[1], out ModEntry mod, false))
+						return "Items modded to be {{W|" + mod.TinkerDisplayName + "}}";
+				}
+				else if (s.StartsWith("ModDisk:"))
+				{
+					if (FindTinkerMod(split[1], out ModEntry mod, false))
+						return "data disk: [{{W|Item mod}}] - {{C|" + mod.TinkerDisplayName + "}}";
+				}
+				else if (s.StartsWith("ItemDisk:"))
+				{
+					if (FindBlueprint(split[1], out GameObjectBlueprint blue))
+						return $"data disk: {blue.DisplayName()}";
+				}
+			}
+			return string.Empty;
 		}
 
 		/// <summary>

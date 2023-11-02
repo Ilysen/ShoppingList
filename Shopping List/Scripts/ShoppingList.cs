@@ -5,7 +5,6 @@ using XRL.Core;
 using XRL.Language;
 using XRL.Liquids;
 using XRL.Messages;
-using XRL.Rules;
 using XRL.UI;
 using XRL.World.Encounters.EncounterObjectBuilders;
 
@@ -78,16 +77,17 @@ namespace XRL.World.Parts
 			if (E.Command == ShoppingListCommand && E.Actor == ParentObject)
 			{
 			ConfigureList:
+				var CachedList = CombinedWishlist;
 				switch (Popup.ShowOptionList("What would you like to do with your shopping list?",
-					new List<string>() { $"Show it ({Wishlist.Count} item{(Wishlist.Count == 1 ? "" : "s")})", "Add something", "Remove something", "Check vendors in current zone", "Import data from code", "Export data to code" },
+					new List<string>() { $"Show it ({CachedList.Count} item{(CachedList.Count == 1 ? "" : "s")})", "Add something", "Remove something", "Check vendors in current zone", "Import data from code", "Export data to code" },
 					new List<char>() { '1', '2', '3', '4', '5', '6' },
 					AllowEscape: true))
 				{
 					case 0:
-						if (Wishlist.Count == 0)
+						if (CachedList.Count == 0)
 							Popup.Show("Your shopping list is empty.");
 						else
-							Popup.Show("Current shopping list: \n\n" + string.Join("\n", Wishlist.Keys));
+							Popup.Show("Current shopping list: \n\n" + string.Join("\n", CachedList.Keys));
 						goto ConfigureList;
 					case 1:
 					QueryBlueprint:
@@ -123,11 +123,10 @@ namespace XRL.World.Parts
 							string itemMod = s.Split(':')[1];
 							if (FindTinkerMod(itemMod, out ModEntry me, false))
 							{
-								key = $"Modded:{me.Part}";
-								display = GetDisplayName(key);
+								display = GetDisplayName(me, true);
 								if (Popup.ShowYesNo("Add items modded to be {{W|" + me.TinkerDisplayName + "}} to your shopping list?") == DialogResult.Yes)
 								{
-									AddToWishlist(display, key);
+									AddToWishlist(ref ModdedWishlist, display, me.Part);
 									Popup.Show("Added items modded to be {{W|" + me.TinkerDisplayName + "}} to your shopping list.");
 								}
 								goto ConfigureList;
@@ -138,11 +137,10 @@ namespace XRL.World.Parts
 						// Check for an exact match with a tinker mod that can be applied by the player
 						if (FindTinkerMod(s, out ModEntry data))
 						{
-							key = $"ModDisk:{data.Part}";
-							display = GetDisplayName(data);
+							display = GetDisplayName(data, false);
 							if (Popup.ShowYesNo("Add data disks for the {{W|" + data.TinkerDisplayName + "}} mod to your shopping list?") == DialogResult.Yes)
 							{
-								AddToWishlist(display, key);
+								AddToWishlist(ref ModWishlist, display, data.Part);
 								Popup.Show("Added data disks for the {{W|" + data.TinkerDisplayName + "}} mod to your shopping list.");
 							}
 							goto ConfigureList;
@@ -154,7 +152,7 @@ namespace XRL.World.Parts
 							display = GetDisplayName(liquid);
 							if (Popup.ShowYesNo($"Add {display} to your shopping list?") == DialogResult.Yes)
 							{
-								AddToWishlist(display, key);
+								AddToWishlist(ref LiquidWishlist, display, key);
 								Popup.Show($"Added {display} to your shopping list.");
 							}
 							goto ConfigureList;
@@ -169,28 +167,27 @@ namespace XRL.World.Parts
 							{
 								if (Popup.ShowYesNo($"Add {display} to your shopping list?") == DialogResult.Yes)
 								{
-									AddToWishlist(display, key);
+									AddToWishlist(ref ItemWishlist, display, key);
 									Popup.Show($"Added {display} to your shopping list.");
 								}
 							}
 							else
 							{
 								int result = Popup.ShowOptionList($"Add {display} to your shopping list?", new List<string> { "Item only", "Item or data disk", "Data disk only" }, AllowEscape: true);
-								string diskId = $"ItemDisk:{bp.Name}";
-								string diskName = GetDisplayName(diskId);
+								string diskName = GetDisplayName(bp, true);
 								switch (result)
 								{
 									case 0:
-										AddToWishlist(display, bp.Name);
+										AddToWishlist(ref ItemWishlist, display, key);
 										Popup.Show($"Added {display} to your shopping list.");
 										break;
 									case 1:
-										AddToWishlist(display, bp.Name);
-										AddToWishlist(diskName, diskId);
+										AddToWishlist(ref ItemWishlist, display, key);
+										AddToWishlist(ref BlueprintWishlist, diskName, bp.Name);
 										Popup.Show($"Added {display} (item and data disk) to your shopping list.");
 										break;
 									case 2:
-										AddToWishlist(diskName, diskId);
+										AddToWishlist(ref BlueprintWishlist, diskName, bp.Name);
 										Popup.Show($"Added data disks for {display} to your shopping list.");
 										break;
 								}
@@ -200,20 +197,26 @@ namespace XRL.World.Parts
 						Popup.Show($"Item mod not found for query '{s}'. Check your spelling or narrow your search.");
 						goto ConfigureList;
 					case 2:
-						if (Wishlist.Count == 0)
+						if (CachedList.Count == 0)
 							Popup.Show("There are no items in your shopping list.");
 						else
 						{
 							List<string> toRemove = new List<string>();
-							List<int> indexesToRemove = Popup.PickSeveral("Pick the shopping list entries you'd like to remove.", Wishlist.Keys.ToArray(), AllowEscape: true);
+							List<int> indexesToRemove = Popup.PickSeveral("Pick the shopping list entries you'd like to remove.", CachedList.Keys.ToArray(), AllowEscape: true);
 							if (!indexesToRemove.IsNullOrEmpty())
 								foreach (int i in indexesToRemove)
-									toRemove.Add(Wishlist.ElementAt(i).Key);
+									toRemove.Add(CachedList.ElementAt(i).Key);
 							if (toRemove.Count > 0)
 							{
-								Popup.Show($"Removed the following from your shopping list:\n\n{string.Join("\n", toRemove)}");
+								Popup.Show($"Removing the following from your shopping list:\n\n{string.Join("\n", toRemove)}");
 								foreach (string removeKey in toRemove)
-									Wishlist.Remove(removeKey);
+								{
+									ItemWishlist.Remove(removeKey);
+									LiquidWishlist.Remove(removeKey);
+									ModWishlist.Remove(removeKey);
+									ModdedWishlist.Remove(removeKey);
+									BlueprintWishlist.Remove(removeKey);
+								}
 							}
 						}
 						goto ConfigureList;
@@ -221,18 +224,45 @@ namespace XRL.World.Parts
 						CheckObjectsInZone(ParentObject.CurrentZone);
 						goto ConfigureList;
 					case 4:
-						string importedCode = Popup.AskString("Paste a code here to import it into the list. {{r|Codes are not validated for bad formatting, so modifying them may cause erratic behavior.}}");
+						string importedCode = Popup.AskString("Paste a code here to import it into the list. Duplicates are automatically skipped. {{r|Modified codes may cause erratic behavior.}}");
 						if (!importedCode.IsNullOrEmpty())
 						{
+							//MessageQueue.AddPlayerMessage("parsing code: " + importedCode);
 							List<string> newlyAdded = new List<string>();
 							string[] entries = importedCode.Split('~');
 							foreach (string entry in entries)
 							{
-								string[] breakdown = entry.Split('#');
-								if (!Wishlist.Keys.Contains(breakdown[0]))
+								string[] breakdown = entry.Split(':');
+								//MessageQueue.AddPlayerMessage($"parsing entry {entry} with {breakdown.Count()} subcodes");
+								if (breakdown.Count() < 2)
+									continue;
+								string nameFor = GetDisplayName(entry);
+								//MessageQueue.AddPlayerMessage($"display name for {entry} returns {nameFor}");
+								if (nameFor == string.Empty)
+									continue;
+								//MessageQueue.AddPlayerMessage($"first entry of breakdown: {breakdown[0]}");
+								switch (breakdown[0])
 								{
-									Wishlist.Add(breakdown[0], breakdown[1]);
-									newlyAdded.Add(breakdown[0]);
+									case "Item":
+										if (AddToWishlist(ref ItemWishlist, nameFor, breakdown[1]))
+											newlyAdded.Add(nameFor);
+										break;
+									case "Liquid":
+										if (AddToWishlist(ref LiquidWishlist, nameFor, breakdown[1]))
+											newlyAdded.Add(nameFor);
+										break;
+									case "ModDisk":
+										if (AddToWishlist(ref ModWishlist, nameFor, breakdown[1]))
+											newlyAdded.Add(nameFor);
+										break;
+									case "Modded":
+										if (AddToWishlist(ref ModdedWishlist, nameFor, breakdown[1]))
+											newlyAdded.Add(nameFor);
+										break;
+									case "ItemDisk":
+										if (AddToWishlist(ref BlueprintWishlist, nameFor, breakdown[1]))
+											newlyAdded.Add(nameFor);
+										break;
 								}
 							}
 							if (newlyAdded.Count == 0)
@@ -242,15 +272,24 @@ namespace XRL.World.Parts
 						}
 						goto ConfigureList;
 					case 5:
-						List<string> toAssemble = new List<string>();
-						foreach (var kvp in Wishlist)
-							toAssemble.Add($"{kvp.Key}#{kvp.Value}");
-						MessageQueue.AddPlayerMessage($"{Wishlist.Count} entries turned into: {toAssemble}");
-						string exportedCode = string.Join("~", toAssemble);
+						string exportedCode = string.Empty;
+						List<string> subentries = new List<string>();
+						foreach (string entry in ItemWishlist.Values)
+							subentries.Add($"Item:{entry}");
+						foreach (string entry in LiquidWishlist.Values)
+							subentries.Add($"Liquid:{entry}");
+						foreach (string entry in ModWishlist.Values)
+							subentries.Add($"ModDisk:{entry}");
+						foreach (string entry in ModdedWishlist.Values)
+							subentries.Add($"Modded:{entry}");
+						foreach (string entry in BlueprintWishlist.Values)
+							subentries.Add($"ItemDisk:{entry}");
+						exportedCode += string.Join("~", subentries);
+						//MessageQueue.AddPlayerMessage($"{ItemWishlist.Count} entries turned into: {exportedCode}");
 						if (exportedCode.IsNullOrEmpty())
 							Popup.Show("You have no shopping list to export!");
 						else
-							Popup.AskString("List exported to the following code. Copy this to your clipboard!", exportedCode);
+							Popup.AskString("List exported to the following code. Copy this to your clipboard:", exportedCode);
 						goto ConfigureList;
 				}
 			}
@@ -259,7 +298,7 @@ namespace XRL.World.Parts
 
 		public override bool HandleEvent(ZoneActivatedEvent E)
 		{
-			if (Wishlist.Count > 0 && E.Zone == The.ActiveZone)
+			if (ItemWishlist.Count > 0 && E.Zone == The.ActiveZone)
 				CheckObjectsInZone(E.Zone);
 			return base.HandleEvent(E);
 		}
@@ -286,11 +325,11 @@ namespace XRL.World.Parts
 				if (!go2.Understood() || !go2.WillTrade())
 					continue;
 				string goName = go2.an();
-				if (Wishlist.Values.Contains(bp.Name) || Wishlist.Values.Contains(bp.Inherits) && !stockedObjects.Keys.Contains(goName))
+				if (ItemWishlist.Values.Contains(bp.Name) || ItemWishlist.Values.Contains(bp.Inherits) && !stockedObjects.Keys.Contains(goName))
 					stockedObjects.Add(goName, go2);
 				if (go2.TryGetPart(out DataDisk dd))
 				{
-					if ((dd.Data.Type == "Mod" && Wishlist.Values.Contains(dd.Data.PartName)) || Wishlist.Values.Contains($"DataDisk_{dd.Data.Blueprint}"))
+					if ((dd.Data.Type == "Mod" && ModWishlist.Values.Contains(dd.Data.PartName)) || BlueprintWishlist.Values.Contains(dd.Data.Blueprint))
 					{
 						stockedObjects.Add(goName, go2);
 						continue;
@@ -299,15 +338,15 @@ namespace XRL.World.Parts
 				if (go2.LiquidVolume?.Volume > 0)
 				{
 					BaseLiquid primaryLiquid = go2.LiquidVolume.GetPrimaryLiquid();
-					if (Wishlist.Values.Contains(go2.LiquidVolume.GetPrimaryLiquid().ID) && !stockedObjects.Keys.Contains(primaryLiquid.GetName()))
+					if (LiquidWishlist.Values.Contains(go2.LiquidVolume.GetPrimaryLiquid().ID) && !stockedObjects.Keys.Contains(primaryLiquid.GetName()))
 					{
 						stockedObjects.Add(primaryLiquid.GetName(), go2);
 						continue;
 					}
 				}
-				foreach (string modName in Wishlist.Values.Where(x => x.StartsWith("Modded:")))
+				foreach (string modName in ModdedWishlist.Values)
 				{
-					if (go2.HasPart(modName.Replace("Modded:", "")))
+					if (go2.HasPart(modName))
 					{
 						stockedObjects.Add(goName, go2);
 						break;
@@ -368,7 +407,7 @@ namespace XRL.World.Parts
 			{
 				if (onlyCanApply && !me.TinkerAllowed)
 					continue;
-				if (me.Part.ToLower().Contains(s) || me.TinkerDisplayName.Strip().ToLower().Contains(s))
+				if (me.Part.ToLower().Contains(s) || me.Part.EqualsNoCase(s) || me.TinkerDisplayName.Strip().ToLower().Contains(s))
 				{
 					data = me;
 					return true;
@@ -397,12 +436,12 @@ namespace XRL.World.Parts
 			return false;
 		}
 
-		/// <summary>
-		/// Returns the display name we should use for the provided <see cref="GameObjectBlueprint"/>.
-		/// This is to make it more clear what some things (like cybernetics implants) are.
-		/// </summary>
-		private string GetNameFor(GameObjectBlueprint bp)
+		private string GetDisplayName(ModEntry mod, bool moddedWith) => moddedWith ? "Items modded to be {{W|" + mod.TinkerDisplayName + "}}" : "data disk: [{{W|Item mod}}] - {{C|" + mod.TinkerDisplayName + "}}";
+
+		private string GetDisplayName(GameObjectBlueprint bp, bool dataDisk = false)
 		{
+			if (dataDisk)
+				return $"data disk: {bp.DisplayName()}";
 			string toReturn = bp.DisplayName();
 			if (bp.HasPart("CyberneticsBaseItem"))
 				toReturn = "[{{W|Implant}}] - " + toReturn;
@@ -415,37 +454,41 @@ namespace XRL.World.Parts
 			return toReturn;
 		}
 
-		private string GetDisplayName(object o)
+		private string GetDisplayName(BaseLiquid bl) => bl.GetName();
+
+		private string GetDisplayName(string s)
 		{
-			if (o is GameObjectBlueprint bp)
-				return GetNameFor(bp);
-			if (o is ModEntry me)
-				return me.TinkerDisplayName;
-			if (o is BaseLiquid bl)
-				return bl.Name;
-			if (o is string s)
+			string[] split = s.Split(':');
+			if (s.StartsWith("Liquid:"))
 			{
-				string[] split = s.Split(':');
-				if (s.StartsWith("Liquid:"))
-				{
-					if (FindLiquid(split[1], out BaseLiquid liquid))
-						return liquid.GetName();
-				}
-				if (s.StartsWith("Modded:"))
-				{
-					if (FindTinkerMod(split[1], out ModEntry mod, false))
-						return "Items modded to be {{W|" + mod.TinkerDisplayName + "}}";
-				}
-				else if (s.StartsWith("ModDisk:"))
-				{
-					if (FindTinkerMod(split[1], out ModEntry mod, false))
-						return "data disk: [{{W|Item mod}}] - {{C|" + mod.TinkerDisplayName + "}}";
-				}
-				else if (s.StartsWith("ItemDisk:"))
-				{
-					if (FindBlueprint(split[1], out GameObjectBlueprint blue))
-						return $"data disk: {blue.DisplayName()}";
-				}
+				if (FindLiquid(split[1], out BaseLiquid liquid))
+					return GetDisplayName(liquid);
+			}
+			else if (s.StartsWith("Modded:"))
+			{
+				//MessageQueue.AddPlayerMessage($"fetching display name for data disk: {s}, search key: {split[1]}");
+				if (FindTinkerMod(split[1], out ModEntry mod, false))
+					return GetDisplayName(mod, true);
+				//else
+				//	MessageQueue.AddPlayerMessage("found no mod entry");
+			}
+			else if (s.StartsWith("ModDisk:"))
+			{
+				//MessageQueue.AddPlayerMessage($"fetching display name for data disk: {s}, search key: {split[1]}");
+				if (FindTinkerMod(split[1], out ModEntry mod, false))
+					return GetDisplayName(mod, false);
+				//else
+				//	MessageQueue.AddPlayerMessage("found no mod entry");
+			}
+			else if (s.StartsWith("ItemDisk:"))
+			{
+				if (FindBlueprint(split[1], out GameObjectBlueprint blue))
+					return GetDisplayName(blue, true);
+			}
+			else if (s.StartsWith("Item:"))
+			{
+				if (FindBlueprint(split[1], out GameObjectBlueprint blue))
+					return GetDisplayName(blue);
 			}
 			return string.Empty;
 		}
@@ -454,10 +497,33 @@ namespace XRL.World.Parts
 		/// Adds a unique entry to the wishlist with a provided display name and value.
 		/// This is effectively a wrapper for <c>Wishlist.Add(key, value)</c> but with a check to ensure no duplicates.
 		/// </summary>
-		private void AddToWishlist(string key, string value)
+		private bool AddToWishlist(ref SortedList<string, string> list, string key, string value)
 		{
-			if (!Wishlist.ContainsValue(value))
-				Wishlist.Add(key, value);
+			if (!list.ContainsKey(key))
+			{
+				list.Add(key, value);
+				return true;
+			}
+			return false;
+		}
+
+		private Dictionary<string, string> CombinedWishlist
+		{
+			get
+			{
+				var toReturn = new Dictionary<string, string>();
+				foreach (KeyValuePair<string, string> kvp in ItemWishlist)
+					toReturn.Add(kvp.Key, kvp.Value);
+				foreach (KeyValuePair<string, string> kvp in LiquidWishlist)
+					toReturn.Add(kvp.Key, kvp.Value);
+				foreach (KeyValuePair<string, string> kvp in ModWishlist)
+					toReturn.Add(kvp.Key, kvp.Value);
+				foreach (KeyValuePair<string, string> kvp in ModdedWishlist)
+					toReturn.Add(kvp.Key, kvp.Value);
+				foreach (KeyValuePair<string, string> kvp in BlueprintWishlist)
+					toReturn.Add(kvp.Key, kvp.Value);
+				return toReturn;
+			}
 		}
 
 		private bool ShouldHighlight => Options.GetOption("Ava_ShoppingList_HighlightVendorsWithItems").EqualsNoCase("Yes");
@@ -477,6 +543,10 @@ namespace XRL.World.Parts
 		/// We use the display names for showing these in the UI in a readable way;
 		/// most of the logic here is done with the values instead.
 		/// </summary>
-		public SortedList<string, string> Wishlist = new SortedList<string, string>();
+		public SortedList<string, string> ItemWishlist = new SortedList<string, string>();
+		public SortedList<string, string> LiquidWishlist = new SortedList<string, string>();
+		public SortedList<string, string> ModWishlist = new SortedList<string, string>();
+		public SortedList<string, string> ModdedWishlist = new SortedList<string, string>();
+		public SortedList<string, string> BlueprintWishlist = new SortedList<string, string>();
 	}
 }

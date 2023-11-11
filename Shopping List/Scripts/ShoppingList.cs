@@ -216,11 +216,11 @@ namespace XRL.World.Parts
 								Popup.Show($"Removing the following from your shopping list:\n\n{string.Join("\n", toRemove.Values)}");
 								foreach (var kvp in toRemove)
 								{
-									ItemWishlist.Remove(kvp.Key);
-									LiquidWishlist.Remove(kvp.Key);
-									ModWishlist.Remove(kvp.Key);
-									ModdedWishlist.Remove(kvp.Key);
-									BlueprintWishlist.Remove(kvp.Key);
+									ItemWishlist.Remove(kvp.Key.Replace("Item:", ""));
+									LiquidWishlist.Remove(kvp.Key.Replace("Liquid:", ""));
+									ModWishlist.Remove(kvp.Key.Replace("ModDisk:", ""));
+									ModdedWishlist.Remove(kvp.Key.Replace("Modded:", ""));
+									BlueprintWishlist.Remove(kvp.Key.Replace("ItemDisk:", ""));
 								}
 							}
 						}
@@ -375,6 +375,8 @@ namespace XRL.World.Parts
 		/// </summary>
 		private bool ShouldCheckObject(GameObject go)
 		{
+			if (go.TryGetPart(out Interesting i) && !i.RequirementsMet(The.Player))
+				return false;
 			Restocker res = go.GetPart<Restocker>();
 			if (res != null && res.NextRestockTick <= XRLCore.CurrentTurn)
 			{
@@ -518,15 +520,15 @@ namespace XRL.World.Parts
 			{
 				var toReturn = new Dictionary<string, string>();
 				foreach (KeyValuePair<string, string> kvp in ItemWishlist)
-					toReturn.Add(kvp.Key, kvp.Value);
+					toReturn.Add($"Item:{kvp.Key}", kvp.Value);
 				foreach (KeyValuePair<string, string> kvp in LiquidWishlist)
-					toReturn.Add(kvp.Key, kvp.Value);
+					toReturn.Add($"Liquid:{kvp.Key}", kvp.Value);
 				foreach (KeyValuePair<string, string> kvp in ModWishlist)
-					toReturn.Add(kvp.Key, kvp.Value);
+					toReturn.Add($"ModDisk:{kvp.Key}", kvp.Value);
 				foreach (KeyValuePair<string, string> kvp in ModdedWishlist)
-					toReturn.Add(kvp.Key, kvp.Value);
+					toReturn.Add($"Modded:{kvp.Key}", kvp.Value);
 				foreach (KeyValuePair<string, string> kvp in BlueprintWishlist)
-					toReturn.Add(kvp.Key, kvp.Value);
+					toReturn.Add($"ItemDisk:{kvp.Key}", kvp.Value);
 				return toReturn;
 			}
 		}

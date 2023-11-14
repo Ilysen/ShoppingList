@@ -6,6 +6,7 @@ using XRL.Language;
 using XRL.Liquids;
 using XRL.Messages;
 using XRL.UI;
+using XRL.World.Capabilities;
 using XRL.World.Encounters.EncounterObjectBuilders;
 
 namespace XRL.World.Parts
@@ -332,7 +333,7 @@ namespace XRL.World.Parts
 				string goName = go2.an();
 				if ((ItemWishlist.ContainsKey(bp.Name) || ItemWishlist.ContainsKey(bp.Inherits)) && !stockedObjects.ContainsValue(go2))
 					stockedObjects.Add(goName, go2);
-				if (go2.TryGetPart(out DataDisk dd))
+				if (go2.TryGetPart(out DataDisk dd) && (The.Player.HasSkill("Tinkering") || Scanning.HasScanningFor(The.Player, Scanning.Scan.Tech)))
 				{
 					if ((dd.Data.Type == "Mod" && ModWishlist.ContainsKey(dd.Data.PartName)) || BlueprintWishlist.ContainsKey(dd.Data.Blueprint))
 					{

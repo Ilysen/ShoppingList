@@ -70,7 +70,43 @@ namespace XRL.World.Parts
 
 		public override bool WantEvent(int ID, int cascade)
 		{
-			return base.WantEvent(ID, cascade) || ID == CommandEvent.ID || ID == ZoneActivatedEvent.ID;
+			return base.WantEvent(ID, cascade) ||
+				ID == CommandEvent.ID ||
+				ID == ZoneActivatedEvent.ID;
+		}
+
+		public override void Register(GameObject Object)
+		{
+			Object.RegisterPartEvent(this, "ObjectAddedToPlayerInventory");
+			base.Register(Object);
+		}
+
+		public override bool FireEvent(Event E)
+		{
+			if (E.ID == "ObjectAddedToPlayerInventory")
+			{
+				GameObject go = E.GetGameObjectParameter("Object");
+				if (go != null)
+				{
+					if (UnderstandsObject(go) && ShouldProactivelyRemove)
+					{
+						if (go.TryGetPart(out DataDisk dd))
+						{
+							if (ModWishlist.ContainsKey(dd.Data.PartName))
+							{
+								MessageQueue.AddPlayerMessage($"Removed {ModWishlist[dd.Data.PartName]} from your shopping list.");
+								ModWishlist.Remove(dd.Data.PartName);
+							}
+							if (BlueprintWishlist.ContainsKey(dd.Data.Blueprint))
+							{
+								MessageQueue.AddPlayerMessage($"Removed {BlueprintWishlist[dd.Data.Blueprint]} from your shopping list.");
+								BlueprintWishlist.Remove(dd.Data.Blueprint);
+							}
+						}
+					}
+				}
+			}
+			return base.FireEvent(E);
 		}
 
 		public override bool HandleEvent(CommandEvent E)
@@ -304,7 +340,7 @@ namespace XRL.World.Parts
 
 		public override bool HandleEvent(ZoneActivatedEvent E)
 		{
-			if (ItemWishlist.Count > 0 && E.Zone == The.ActiveZone)
+			if (CombinedWishlist.Count > 0 && E.Zone == The.ActiveZone)
 				CheckObjectsInZone(E.Zone);
 			return base.HandleEvent(E);
 		}
@@ -328,12 +364,12 @@ namespace XRL.World.Parts
 			foreach (GameObject go2 in go.Inventory.Objects.Where(x => TradeUI.ValidForTrade(x, go)))
 			{
 				GameObjectBlueprint bp = go2.GetBlueprint();
-				if (!go2.Understood() || !go2.WillTrade())
+				if (!UnderstandsObject(go2) || !go2.WillTrade())
 					continue;
 				string goName = go2.an();
 				if ((ItemWishlist.ContainsKey(bp.Name) || ItemWishlist.ContainsKey(bp.Inherits)) && !stockedObjects.ContainsValue(go2))
 					stockedObjects.Add(goName, go2);
-				if (go2.TryGetPart(out DataDisk dd) && (The.Player.HasSkill("Tinkering") || Scanning.HasScanningFor(The.Player, Scanning.Scan.Tech)))
+				if (go2.TryGetPart(out DataDisk dd))
 				{
 					if ((dd.Data.Type == "Mod" && ModWishlist.ContainsKey(dd.Data.PartName)) || BlueprintWishlist.ContainsKey(dd.Data.Blueprint))
 					{
@@ -515,6 +551,23 @@ namespace XRL.World.Parts
 			return false;
 		}
 
+		/// <summary>
+		/// Returns whether or not the given <see cref="GameObject"/> is considered to be fully understood for the purposes of shopping list notifications.
+		/// Most objects just check <see cref="GameObject.Understood()"/>, but data disks have special handling that needs to be replicated here.
+		/// </summary>
+		private bool UnderstandsObject(GameObject Object)
+		{
+			if (!Object.Understood())
+				return false;
+			if (Object.HasPart<DataDisk>() && !The.Player.HasSkill("Tinkering") && Scanning.HasScanningFor(The.Player, Scanning.Scan.Tech))
+				return false;
+			return true;
+		}
+
+		/// <summary>
+		/// Getter for a combined <see cref="Dictionary{TKey, TValue}"/> representing all of the wishlists merged together.
+		/// To prevent duplicates, each entry's key is prefixed with a string depending on the wishlist it originates from.
+		/// </summary>
 		private Dictionary<string, string> CombinedWishlist
 		{
 			get
@@ -534,7 +587,16 @@ namespace XRL.World.Parts
 			}
 		}
 
+		/// <summary>
+		/// Getter function for the "highlight vendors with items" setting.
+		/// </summary>
 		private bool ShouldHighlight => Options.GetOption("Ava_ShoppingList_HighlightVendorsWithItems").EqualsNoCase("Yes");
+
+		/// <summary>
+		/// Getter function for the "proactively remove data disks" setting.
+		/// Could be expanded in the future.
+		/// </summary>
+		private bool ShouldProactivelyRemove => Options.GetOption("Ava_ShoppingList_ProactivelyRemoveItems").EqualsNoCase("Yes");
 
 		/// <summary>
 		/// This is a workaround for the current inability to effectively track when a <see cref="Restocker"/> restocks its inventory.
@@ -546,15 +608,34 @@ namespace XRL.World.Parts
 		/// </summary>
 		private readonly Dictionary<GameObject, Restocker> deferredObjects = new Dictionary<GameObject, Restocker>();
 
+		/*
+		 * Each of these dictionaries is used to track things from the player's shopping list.
+		 * All of them use a blueprint/ID/etc as their key, and a display name as their value.
+		 */
+
 		/// <summary>
-		/// A list of blueprint paths/liquid IDs associated to their relevant display names.
-		/// We use the display names for showing these in the UI in a readable way;
-		/// most of the logic here is done with the values instead.
+		/// Tracks specific items via their blueprint name.
 		/// </summary>
 		public SortedList<string, string> ItemWishlist = new SortedList<string, string>();
+
+		/// <summary>
+		/// Tracks pure liquids via their string ID.
+		/// </summary>
 		public SortedList<string, string> LiquidWishlist = new SortedList<string, string>();
+
+		/// <summary>
+		/// Tracks item mods via their part name. This list is used to check specifically for matching data disks.
+		/// </summary>
 		public SortedList<string, string> ModWishlist = new SortedList<string, string>();
+
+		/// <summary>
+		/// As <see cref="ModWishlist"/>, but tracks items with the particular part instead.
+		/// </summary>
 		public SortedList<string, string> ModdedWishlist = new SortedList<string, string>();
+
+		/// <summary>
+		/// As <see cref="ItemWishlist"/>, but tracks data disks for the blueprint instead.
+		/// </summary>
 		public SortedList<string, string> BlueprintWishlist = new SortedList<string, string>();
 	}
 }

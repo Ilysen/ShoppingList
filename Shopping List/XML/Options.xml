@@ -4,4 +4,11 @@
 		DisplayText="Highlight vendors with shopping list items" Category="Shopping List"
 		Type="Checkbox" Default="Yes">
 	</option>
+	<option ID="Ava_ShoppingList_ProactivelyRemoveItems"
+		DisplayText="Remove data disks from the list once you acquire them" Category="Shopping List"
+		Type="Checkbox" Default="Yes">
+		<helptext>
+			This applies when you get the disk, not when you use it.
+		</helptext>
+	</option>
 </options>

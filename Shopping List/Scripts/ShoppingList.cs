@@ -142,7 +142,7 @@ namespace XRL.World.Parts
 									Popup.Show("To find an item, {{rules|enter its display name or blueprint ID}} - the game will attempt to find an appropriate match and present it to you. This search can be fuzzy, but {{rules|try to be as exact as possible}} to ensure accuracy.");
 									goto Documentation;
 								case 1:
-									Popup.Show("To find a {{rules|data disk for a particular artifact,}} search for the item itself. If you can build it, you'll have the option to add the data disk for that item (or to add both the item itself and the data disk) to your shopping list.\n\nTo find a {{rules|data disk for an item mod,}} prefix your search with {{W|mod:}}, then search for the mod's name or part ID. This must be exact in order to find a match, but is not case sensitive. Some examples include:\n\n{{rules|mod:slender}}\n{{rules|mod:overloaded}}\n{{rules|mod:slender}}");
+									Popup.Show("To find a {{rules|data disk for a particular artifact,}} search for the item itself. If you can build it, you'll have the option to add the data disk for that item (or to add both the item itself and the data disk) to your shopping list.\n\nTo find a {{rules|data disk for an item mod,}} prefix your search with {{W|mod:}}, then search for the mod's name or part ID. This must be exact in order to find a match, but is not case sensitive. Some examples include:\n\n{{rules|mod:slender}}\n{{rules|mod:overloaded}}\n{{rules|mod:jacked}}");
 									goto Documentation;
 								case 2:
 									Popup.Show("To find items with a certain mod, prefix your search with {{W|modded:}} and then enter the exact display name or item mod in particular, like these examples:\n\n{{rules|modded:snail-encrusted}}\n{{rules|modded:sturdy}}\n{{rules|modded:fitted with suspensors}}\n\nThis must be exact in order to find a match, but is not case-sensitive.");
@@ -559,8 +559,9 @@ namespace XRL.World.Parts
 		{
 			if (!Object.Understood())
 				return false;
-			if (Object.HasPart<DataDisk>() && !The.Player.HasSkill("Tinkering") && Scanning.HasScanningFor(The.Player, Scanning.Scan.Tech))
-				return false;
+			if (Object.HasPart<DataDisk>())
+				if (!The.Player.HasSkill("Tinkering") && !Scanning.HasScanningFor(The.Player, Scanning.Scan.Tech))
+					return false;
 			return true;
 		}
 

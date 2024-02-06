@@ -40,34 +40,6 @@ namespace XRL.World.Parts
 			base.Remove();
 		}
 
-		public override bool WantTurnTick()
-		{
-			return deferredObjects.Count > 0;
-		}
-
-		public override void TurnTick(long TurnNumber)
-		{
-			//MessageQueue.AddPlayerMessage($"Turn ticking. Deferred objects count: {deferredObjects.Count}");
-			for (int i = 0; i < deferredObjects.Count; i++)
-			{
-				KeyValuePair<GameObject, Restocker> obj = deferredObjects.ElementAt(i);
-				//MessageQueue.AddPlayerMessage($"  {obj.Key.DisplayName}");
-				if (obj.Key == null || obj.Value == null)
-				{
-					deferredObjects.Remove(obj.Key);
-					continue;
-				}
-				//MessageQueue.AddPlayerMessage($"  Will classify for checking if {obj.Value.NextRestockTick} > {XRLCore.CurrentTurn}");
-				if (obj.Value.NextRestockTick > XRLCore.CurrentTurn)
-				{
-					//MessageQueue.AddPlayerMessage("    Classifies. Removing");
-					CheckObjectInventory(obj.Key);
-					deferredObjects.Remove(obj.Key);
-					continue;
-				}
-			}
-		}
-
 		public override bool WantEvent(int ID, int cascade)
 		{
 			return base.WantEvent(ID, cascade) ||
@@ -408,23 +380,14 @@ namespace XRL.World.Parts
 
 		/// <summary>
 		/// Determines if the provided <see cref="GameObject"/> should have their inventory checked for shopping list items.
-		/// If they have a <see cref="Restocker"/> or <see cref="GenericInventoryRestocker"/> part and are not about to restock, this returns true.
+		/// If they have a <see cref="GenericInventoryRestocker"/> part and are not about to restock, this returns true.
 		/// </summary>
 		private bool ShouldCheckObject(GameObject go)
 		{
 			if (go.TryGetPart(out Interesting i) && !i.RequirementsMet(The.Player))
 				return false;
-			Restocker res = go.GetPart<Restocker>();
-			if (res != null && res.NextRestockTick <= XRLCore.CurrentTurn)
-			{
-				//MessageQueue.AddPlayerMessage($"{go.DisplayName} is about to restock and so we are moving them to the deferred list ");
-				deferredObjects[go] = res;
-				return false;
-			}
 			GenericInventoryRestocker gir = go.GetPart<GenericInventoryRestocker>();
-			if (gir != null && gir.RestockFrequency <= XRLCore.CurrentTurn - gir.LastRestockTick)
-				return false;
-			return res != null || gir != null;
+			return gir != null && gir.RestockFrequency > XRLCore.CurrentTurn - gir.LastRestockTick;
 		}
 
 		/// <summary>
@@ -489,12 +452,6 @@ namespace XRL.World.Parts
 			string toReturn = bp.DisplayName();
 			if (bp.HasPart("CyberneticsBaseItem"))
 				toReturn = "[{{W|Implant}}] - " + toReturn;
-			else
-			{
-				Gender g = Gender.Genders[bp.GetTag("Gender")];
-				if (g == null || !g.Plural)
-					toReturn = Grammar.Pluralize(toReturn);
-			}
 			return toReturn;
 		}
 
@@ -599,14 +556,7 @@ namespace XRL.World.Parts
 		/// </summary>
 		private bool ShouldProactivelyRemove => Options.GetOption("Ava_ShoppingList_ProactivelyRemoveItems").EqualsNoCase("Yes");
 
-		/// <summary>
-		/// This is a workaround for the current inability to effectively track when a <see cref="Restocker"/> restocks its inventory.
-		/// If the part is about to restock it, we add it to this list, and then iterate through it every turn thereafter,
-		/// checking the restock time of each associated part and manually triggering a list check on the associated <see cref="GameObject"/>
-		/// if it's no longer about to fire (i.e. we can safely assume a restock has happened).
-		/// <br/><br/>
-		/// Ideally, this'll be removed if we ever get an event to track restocks.
-		/// </summary>
+		[Obsolete("This variable is kept around for mid-save compat reasons and will be removed in the next major update to the game.")]
 		private readonly Dictionary<GameObject, Restocker> deferredObjects = new Dictionary<GameObject, Restocker>();
 
 		/*

@@ -45,6 +45,7 @@ namespace XRL.World.Parts
 			return base.WantEvent(ID, cascade) ||
 				ID == AfterPlayerBodyChangeEvent.ID ||
 				ID == CommandEvent.ID ||
+				ID == ReplicaCreatedEvent.ID ||
 				ID == ZoneActivatedEvent.ID;
 		}
 
@@ -319,6 +320,13 @@ namespace XRL.World.Parts
 						goto ConfigureList;
 				}
 			}
+			return base.HandleEvent(E);
+		}
+
+		public override bool HandleEvent(ReplicaCreatedEvent E)
+		{
+			if (E.Object == ParentObject)
+				E.WantToRemove(this);
 			return base.HandleEvent(E);
 		}
 

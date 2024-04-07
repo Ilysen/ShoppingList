@@ -6,6 +6,11 @@ Shopping List is licensed under the [GNU General Public License v3](http://www.g
 
 ## Changelog
 
+### 7 March, 2024
+
+#### Version 1.0.2
+* Potential workaround for a Linux-exclusive bug in the vanilla code that caused shopping lists to double up indefinitely whenever the player switched bodies, such as through domination. Thanks to Krast and Duct Vader on Steam for reporting and helping diagnose this, and kernelmethod from the Caves of Qud Discord for discovering the workaround.
+
 ### 6 February, 2024
 
 #### Version 1.0.1

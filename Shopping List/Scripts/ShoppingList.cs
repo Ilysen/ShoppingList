@@ -15,7 +15,7 @@ namespace XRL.World.Parts
 	/// This part is added to the player object and handles all of the logic of the shopping list.
 	/// </summary>
 	[Serializable]
-	public class Ava_ShoppingList_ShoppingListPart : IPlayerPart
+	public class Ava_ShoppingList_ShoppingListPart : IPart
 	{
 		/// <summary>
 		/// The string command used to open the shopping list menu. Should correspond to the key in Abilities.xml.
@@ -43,6 +43,7 @@ namespace XRL.World.Parts
 		public override bool WantEvent(int ID, int cascade)
 		{
 			return base.WantEvent(ID, cascade) ||
+				ID == AfterPlayerBodyChangeEvent.ID ||
 				ID == CommandEvent.ID ||
 				ID == ZoneActivatedEvent.ID;
 		}
@@ -79,6 +80,17 @@ namespace XRL.World.Parts
 				}
 			}
 			return base.FireEvent(E);
+		}
+
+		// This is to bypass a Linux bug with IPlayerPart that seems to cause it to initialize twice on being swapped to a new body
+		// If that bug gets fixed, this event handler should be removed
+		public override bool HandleEvent(AfterPlayerBodyChangeEvent E)
+		{
+			if (E.OldBody == ParentObject)
+				E.OldBody.RemovePart(this);
+			if (E.NewBody != null && !E.NewBody.HasPart<Ava_ShoppingList_ShoppingListPart>())
+				E.NewBody.AddPart(this);
+			return base.HandleEvent(E);
 		}
 
 		public override bool HandleEvent(CommandEvent E)

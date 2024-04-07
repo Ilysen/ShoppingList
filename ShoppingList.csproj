@@ -34,6 +34,8 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="LICENSE.md" />
+    <None Include="README.md" />
     <None Include="Shopping List\manifest.json" />
   </ItemGroup>
   <ItemGroup>
@@ -48,7 +50,7 @@
       <HintPath>..\..\..\Program Files (x86)\Steam\steamapps\common\Caves of Qud\CoQ_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\Program Files (x86)\Steam\steamapps\common\Caves of Qud\CoQ_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>..\..\..\Program Files (x86)\Steam\steamapps\common\Caves of Qud\CoQ_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

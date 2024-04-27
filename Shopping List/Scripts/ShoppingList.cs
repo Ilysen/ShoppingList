@@ -229,7 +229,10 @@ namespace XRL.World.Parts
 						else
 						{
 							Dictionary<string, string> toRemove = new Dictionary<string, string>();
-							List<int> indexesToRemove = Popup.PickSeveral("Pick the shopping list entries you'd like to remove.", CachedList.Values.ToArray(), AllowEscape: true);
+							List<int> indexesToRemove = new List<int>();
+							var chosenEntries = Popup.PickSeveral("Pick the shopping list entries you'd like to remove.", CachedList.Values.ToArray(), AllowEscape: true);
+							foreach (var (Selected, Amount) in chosenEntries)
+								indexesToRemove.Add(Selected);
 							if (!indexesToRemove.IsNullOrEmpty())
 								foreach (int i in indexesToRemove)
 									toRemove.Add(CachedList.ElementAt(i).Key, CachedList.ElementAt(i).Value);

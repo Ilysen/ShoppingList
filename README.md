@@ -6,6 +6,9 @@ Shopping List is licensed under the [GNU General Public License v3](http://www.g
 
 ## Changelog
 
+### 6 June, 2024
+* Updated to work with the Spring Molting patch (2.0.207.63).
+
 ### 27 April, 2024
 
 #### Version 1.0.3

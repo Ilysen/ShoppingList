@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using XRL;
-using XRL.World.Encounters.EncounterObjectBuilders;
 using XRL.World.Parts;
 
 namespace Ava.ShoppingList.HarmonyPatches

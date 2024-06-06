@@ -7,7 +7,6 @@ using XRL.Liquids;
 using XRL.Messages;
 using XRL.UI;
 using XRL.World.Capabilities;
-using XRL.World.Encounters.EncounterObjectBuilders;
 
 namespace XRL.World.Parts
 {
@@ -578,9 +577,6 @@ namespace XRL.World.Parts
 		/// Could be expanded in the future.
 		/// </summary>
 		private bool ShouldProactivelyRemove => Options.GetOption("Ava_ShoppingList_ProactivelyRemoveItems").EqualsNoCase("Yes");
-
-		[Obsolete("This variable is kept around for mid-save compat reasons and will be removed in the next major update to the game.")]
-		private readonly Dictionary<GameObject, Restocker> deferredObjects = new Dictionary<GameObject, Restocker>();
 
 		/*
 		 * Each of these dictionaries is used to track things from the player's shopping list.

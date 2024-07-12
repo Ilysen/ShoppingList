@@ -48,10 +48,10 @@ namespace XRL.World.Parts
 				ID == ZoneActivatedEvent.ID;
 		}
 
-		public override void Register(GameObject Object)
+		public override void Register(GameObject Object, IEventRegistrar Registrar)
 		{
 			Object.RegisterPartEvent(this, "ObjectAddedToPlayerInventory");
-			base.Register(Object);
+			base.Register(Object, Registrar);
 		}
 
 		public override bool FireEvent(Event E)
@@ -99,9 +99,9 @@ namespace XRL.World.Parts
 			{
 			ConfigureList:
 				var CachedList = CombinedWishlist;
-				switch (Popup.ShowOptionList("What would you like to do with your shopping list?",
-					new List<string>() { $"Show it ({CachedList.Count} item{(CachedList.Count == 1 ? "" : "s")})", "Add something", "Remove something", "Check vendors in current zone", "Import data from code", "Export data to code" },
-					new List<char>() { '1', '2', '3', '4', '5', '6' },
+				switch (Popup.PickOption("What would you like to do with your shopping list?",
+					Options: new List<string>() { $"Show it ({CachedList.Count} item{(CachedList.Count == 1 ? "" : "s")})", "Add something", "Remove something", "Check vendors in current zone", "Import data from code", "Export data to code" },
+					Hotkeys: new List<char>() { '1', '2', '3', '4', '5', '6' },
 					AllowEscape: true))
 				{
 					case 0:
@@ -120,7 +120,7 @@ namespace XRL.World.Parts
 						if (s.Equals("help") || s.Equals("?"))
 						{
 						Documentation:
-							switch (Popup.ShowOptionList("What would you like help with?", new List<string> { "Searching for {{rules|items}}", "Searching for {{rules|data disks}}", "Searching for {{rules|items with a certain mod}}", "Searching for {{rules|pure liquids}}" }, AllowEscape: true))
+							switch (Popup.PickOption("What would you like help with?", Options: new List<string> { "Searching for {{rules|items}}", "Searching for {{rules|data disks}}", "Searching for {{rules|items with a certain mod}}", "Searching for {{rules|pure liquids}}" }, AllowEscape: true))
 							{
 								case 0:
 									Popup.Show("To find an item, {{rules|enter its display name or blueprint ID}} - the game will attempt to find an appropriate match and present it to you. This search can be fuzzy, but {{rules|try to be as exact as possible}} to ensure accuracy.");
@@ -199,7 +199,7 @@ namespace XRL.World.Parts
 							}
 							else
 							{
-								int result = Popup.ShowOptionList($"Add {display} to your shopping list?", new List<string> { "Item only", "Item or data disk", "Data disk only" }, AllowEscape: true);
+								int result = Popup.PickOption($"Add {display} to your shopping list?", Options: new List<string> { "Item only", "Item or data disk", "Data disk only" }, AllowEscape: true);
 								string diskName = GetDisplayName(bp, true);
 								switch (result)
 								{
@@ -220,7 +220,7 @@ namespace XRL.World.Parts
 							}
 							goto ConfigureList;
 						}
-						Popup.Show($"Item mod not found for query '{s}'. Check your spelling or narrow your search.");
+						Popup.Show($"Item blueprint not found for query '{s}'. Check your spelling or narrow your search.");
 						goto ConfigureList;
 					case 2:
 						if (CachedList.Count == 0)
@@ -453,7 +453,7 @@ namespace XRL.World.Parts
 		private bool FindBlueprint(string s, out GameObjectBlueprint bp)
 		{
 			WishResult foundResult = WishSearcher.SearchForBlueprint(s);
-			if (!foundResult.Result.IsNullOrEmpty() && foundResult.NegativeMarks == 0)
+			if (foundResult?.Result != null && !foundResult.Result.IsNullOrEmpty() && foundResult.NegativeMarks == 0)
 			{
 				if (GameObjectFactory.Factory.Blueprints.TryGetValue(foundResult.Result, out GameObjectBlueprint blueprint) && blueprint.GetPartParameter("Physics", "Takeable", true) && !blueprint.HasTag("Creature"))
 				{

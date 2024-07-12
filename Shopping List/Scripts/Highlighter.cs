@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using XRL.Core;
+using XRL.UI;
 
 namespace XRL.World.Parts
 {
@@ -11,10 +12,10 @@ namespace XRL.World.Parts
 	[Serializable]
 	public class Ava_ShoppingList_Highlighter : IPart
 	{
-		public override void Register(GameObject Object)
+		public override void Register(GameObject Object, IEventRegistrar Registrar)
 		{
 			Object.RegisterPartEvent(this, "EncumbranceChanged");
-			base.Register(Object);
+			base.Register(Object, Registrar);
 		}
 
 		public override bool FireEvent(Event E)
@@ -51,12 +52,29 @@ namespace XRL.World.Parts
 			}
 			else
 				flipped = false;
-			E.ApplyColors(flipColor ? "&m" : "&M", 81);
+			E.ApplyColors(flipColor ? $"&{CachedHighlightColor.ToLower()}" : $"&{CachedHighlightColor}", 81);
 			return base.Render(E);
 		}
 
 		private bool flipColor = false;
 		private bool flipped = false;
+
+		private string CachedHighlightColor
+		{
+			get
+			{
+				if (_cachedHighlightColor != null)
+					return _cachedHighlightColor;
+				string newColor = Options.GetOption("Ava_ShoppingList_HighlightColor");
+				if (newColor.EqualsNoCase("Yellow"))
+					newColor = "W";
+				else
+					newColor = newColor[0].ToString();
+				_cachedHighlightColor = newColor;
+				return newColor;
+			}
+		}
+		private string _cachedHighlightColor;
 
 		/// <summary>
 		/// If this is <c>true</c> when the game renders a frame, then it will search the parent object's inventory for jade and save the result to <see cref="hasJade"/>,

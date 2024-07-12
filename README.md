@@ -6,6 +6,11 @@ Shopping List is licensed under the [GNU General Public License v3](http://www.g
 
 ## Changelog
 
+### 11 July, 2024
+#### Version 1.1
+* Fixed a harmless error that would occur when entering an invalid object ID.
+* Added a setting that allows control over the colors of highlighted NPCs. It defaults to magenta, but can also be changed between red, orange, yellow, green, blue, cyan, and white.
+
 ### 22 June, 2024
 #### Version 1.0.5
 * Updated to work with game version 2.0.207.72, which featured breaking API changes.

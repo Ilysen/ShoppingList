@@ -2,7 +2,7 @@
 using XRL.World;
 using XRL.World.Parts;
 
-namespace Ava.ShoppingList.Scripts
+namespace Ceres.ShoppingList.Scripts
 {
 	[HasCallAfterGameLoaded]
 	public class LoadGameHandler
@@ -10,7 +10,7 @@ namespace Ava.ShoppingList.Scripts
 		[CallAfterGameLoaded]
 		public static void AfterLoaded()
 		{
-			The.Player?.RequirePart<Ava_ShoppingList_ShoppingListPart>();
+			The.Player?.RequirePart<Ceres_ShoppingList_ShoppingListPart>();
 		}
 	}
 
@@ -19,7 +19,7 @@ namespace Ava.ShoppingList.Scripts
 	{
 		public void mutate(GameObject player)
 		{
-			player.RequirePart<Ava_ShoppingList_ShoppingListPart>();
+			player.RequirePart<Ceres_ShoppingList_ShoppingListPart>();
 		}
 	}
 }

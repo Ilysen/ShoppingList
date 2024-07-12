@@ -37,6 +37,7 @@
     <None Include="LICENSE.md" />
     <None Include="README.md" />
     <None Include="Shopping List\manifest.json" />
+    <None Include="Shopping List\workshop.json" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
@@ -60,6 +61,7 @@
     <Compile Include="Shopping List\Scripts\ShoppingList.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Shopping List\preview.png" />
     <Content Include="Shopping List\XML\Abilities.xml" />
     <Content Include="Shopping List\XML\Options.xml" />
   </ItemGroup>

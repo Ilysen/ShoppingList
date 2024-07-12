@@ -2,7 +2,7 @@
 using XRL;
 using XRL.World.Parts;
 
-namespace Ava.ShoppingList.HarmonyPatches
+namespace Ceres.ShoppingList.HarmonyPatches
 {
 	/// <summary>
 	/// This is a postfix used as one of two workarounds for the inability to easily track a merchant restocking.
@@ -16,7 +16,7 @@ namespace Ava.ShoppingList.HarmonyPatches
 		[HarmonyPatch(nameof(GenericInventoryRestocker.PerformStock))]
 		static void PerformStockPatch(GenericInventoryRestocker __instance)
 		{
-			if (The.Player != null && The.Player.TryGetPart(out Ava_ShoppingList_ShoppingListPart slp) && The.ActiveZone == __instance.ParentObject.CurrentZone)
+			if (The.Player != null && The.Player.TryGetPart(out Ceres_ShoppingList_ShoppingListPart slp) && The.ActiveZone == __instance.ParentObject.CurrentZone)
 				slp.CheckObjectInventory(__instance.ParentObject);
 		}
 	}

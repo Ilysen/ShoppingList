@@ -6,11 +6,11 @@ using XRL.UI;
 namespace XRL.World.Parts
 {
 	/// <summary>
-	/// This is a visual part added to any creature that <see cref="Ava_ShoppingList_ShoppingListPart"/> flags as having items from the configured shopping list.
+	/// This is a visual part added to any creature that <see cref="Ceres_ShoppingList_ShoppingListPart"/> flags as having items from the configured shopping list.
 	/// It is automatically removed if all objects in the list <see cref="CachedObjects"/> (populated on creation) are null or not present in the inventory anymore.
 	/// </summary>
 	[Serializable]
-	public class Ava_ShoppingList_Highlighter : IPart
+	public class Ceres_ShoppingList_Highlighter : IScribedPart
 	{
 		public override void Register(GameObject Object, IEventRegistrar Registrar)
 		{
@@ -29,43 +29,54 @@ namespace XRL.World.Parts
 		{
 			if (ShouldUpdateObjectList)
 			{
-				//MessageQueue.AddPlayerMessage($"Updating highlight part for {ParentObject.DisplayName}");
-				foreach (GameObject go in CachedObjects.ToArray())
+				foreach (GameObject go in CachedObjects)
 					if (go == null || !ParentObject.Inventory.HasObject(go))
 						CachedObjects.Remove(go);
 				if (CachedObjects.Count == 0)
 				{
-					//MessageQueue.AddPlayerMessage($"No more cached objects remaining. Removing.");
 					ParentObject.RemovePart(this);
 					return base.Render(E);
 				}
-				//MessageQueue.AddPlayerMessage($"Continuing with highlight");
 				ShouldUpdateObjectList = false;
 			}
 			if (XRLCore.CurrentFrame % 60 <= 5)
 			{
-				if (!flipped)
+				if (!_flipped)
 				{
-					flipColor = !flipColor;
-					flipped = true;
+					_flipColor = !_flipColor;
+					_flipped = true;
 				}
 			}
 			else
-				flipped = false;
-			E.ApplyColors(flipColor ? $"&{CachedHighlightColor.ToLower()}" : $"&{CachedHighlightColor}", 81);
+				_flipped = false;
+			E.ApplyColors(_flipColor ? $"&{CachedHighlightColor.ToLower()}" : $"&{CachedHighlightColor}", 81);
 			return base.Render(E);
 		}
 
-		private bool flipColor = false;
-		private bool flipped = false;
+		/// <summary>
+		/// Used for animating the highlighter's flashing. If <c>true</c>, the lowercase form of <see cref="CachedHighlightColor"/> will be used,
+		/// instead of using it as-is.
+		/// </summary>
+		private bool _flipColor = false;
+		/// <summary>
+		/// Used for animating the highlighter's flashing. When <see cref="_flipColor"/> is changed, this value becomes <c>true</c>; and the next time
+		/// it would be changed, this value is set to <c>false</c> instead, and the cycle continues.
+		/// This effectively slows down the animation to happen half as fast as it normally could if we were just checking the frame interval.
+		/// </summary>
+		private bool _flipped = false;
 
+		/// <summary>
+		/// Auto-getter for <see cref="_cachedHighlightColor"/>. This refreshes on object load, and is cached as a micro-optimization.
+		/// </summary>
 		private string CachedHighlightColor
 		{
 			get
 			{
 				if (_cachedHighlightColor != null)
 					return _cachedHighlightColor;
-				string newColor = Options.GetOption("Ava_ShoppingList_HighlightColor");
+				string newColor = Options.GetOption("Ceres_ShoppingList_HighlightColor");
+				// All of the other colors -- red, blue, green, etc -- all happen to start with the character that designates their color code
+				// Yellow, however, does not; the code for yellow is W, so we have to set it manually here instead of just fetching it quickly
 				if (newColor.EqualsNoCase("Yellow"))
 					newColor = "W";
 				else
@@ -74,6 +85,12 @@ namespace XRL.World.Parts
 				return newColor;
 			}
 		}
+
+		/// <summary>
+		/// The code for the color that this actor will be highlighted in, if applicable.
+		/// <br/><br/>
+		/// <b>This should never be used on its own</b> -- instead, use <see cref="CachedHighlightColor"/>.
+		/// </summary>
 		private string _cachedHighlightColor;
 
 		/// <summary>

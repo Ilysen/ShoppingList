@@ -1,16 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <options>
-	<option ID="Ava_ShoppingList_HighlightVendorsWithItems"
+	<option ID="Ceres_ShoppingList_HighlightVendorsWithItems"
 		DisplayText="Highlight vendors with shopping list items" Category="Shopping List"
 		Type="Checkbox" Default="Yes">
 	</option>
-	<option ID="Ava_ShoppingList_HighlightColor" DisplayText="Highlight color (changes on save/load)" Category="Shopping List"
+	<option ID="Ceres_ShoppingList_HighlightColor" DisplayText="Highlight color (changes on save/load)" Category="Shopping List"
 		Type="Combo" Values="Red,Orange,Yellow,Green,Blue,Cyan,Magenta,White" Default="Magenta">
 		<helptext>
 			If "Highlight vendors with shopping list items" is enabled, they will be highlighted in this color.
 		</helptext>
 	</option>
-	<option ID="Ava_ShoppingList_ProactivelyRemoveItems"
+	<option ID="Ceres_ShoppingList_ProactivelyRemoveItems"
 		DisplayText="Remove data disks from the list once you acquire them" Category="Shopping List"
 		Type="Checkbox" Default="Yes">
 		<helptext>

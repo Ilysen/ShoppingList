@@ -14,12 +14,12 @@ namespace XRL.World.Parts
 	/// This part is added to the player object and handles all of the logic of the shopping list.
 	/// </summary>
 	[Serializable]
-	public class Ava_ShoppingList_ShoppingListPart : IPart
+	public class Ceres_ShoppingList_ShoppingListPart : IPlayerPart
 	{
 		/// <summary>
 		/// The string command used to open the shopping list menu. Should correspond to the key in Abilities.xml.
 		/// </summary>
-		public static readonly string ShoppingListCommand = "Ava_ShoppingList_ConfigureShoppingList";
+		public static readonly string ShoppingListCommand = "Ceres_ShoppingList_ConfigureShoppingList";
 
 		/// <summary>
 		/// The <see cref="Guid"/> of the active ability that's used to open the shopping list.
@@ -37,6 +37,17 @@ namespace XRL.World.Parts
 		{
 			RemoveMyActivatedAbility(ref ActivatedAbility, ParentObject);
 			base.Remove();
+		}
+
+		// There's no such thing as an IScribedPlayerPart, so these functions manually turn this part into a scribed one
+		public override void Write(GameObject Basis, SerializationWriter Writer)
+		{
+			Writer.WriteNamedFields(this, GetType());
+		}
+
+		public override void Read(GameObject Basis, SerializationReader Reader)
+		{
+			Reader.ReadNamedFields(this, GetType());
 		}
 
 		public override bool WantEvent(int ID, int cascade)
@@ -80,17 +91,6 @@ namespace XRL.World.Parts
 				}
 			}
 			return base.FireEvent(E);
-		}
-
-		// This is to bypass a Linux bug with IPlayerPart that seems to cause it to initialize twice on being swapped to a new body
-		// If that bug gets fixed, this event handler should be removed
-		public override bool HandleEvent(AfterPlayerBodyChangeEvent E)
-		{
-			if (E.OldBody == ParentObject)
-				E.OldBody.RemovePart(this);
-			if (E.NewBody != null && !E.NewBody.HasPart<Ava_ShoppingList_ShoppingListPart>())
-				E.NewBody.AddPart(this);
-			return base.HandleEvent(E);
 		}
 
 		public override bool HandleEvent(CommandEvent E)
@@ -391,13 +391,13 @@ namespace XRL.World.Parts
 			}
 			if (stockedObjects.Count == 0)
 			{
-				go.RemovePart<Ava_ShoppingList_Highlighter>();
+				go.RemovePart<Ceres_ShoppingList_Highlighter>();
 				return;
 			}
 			string directionToThing = go.CurrentZone == The.Player.CurrentZone ? The.Player.DescribeDirectionToward(go) : "in a nearby zone";
 			MessageQueue.AddPlayerMessage($"{go.The + go.ShortDisplayName} {directionToThing} is stocking {Grammar.MakeAndList(stockedObjects.Keys.ToArray())} from your shopping list!", "M");
 			if (ShouldHighlight)
-				go.RequirePart<Ava_ShoppingList_Highlighter>().CachedObjects = stockedObjects.Values.ToList();
+				go.RequirePart<Ceres_ShoppingList_Highlighter>().CachedObjects = stockedObjects.Values.ToList();
 		}
 
 		/// <summary>
@@ -570,17 +570,19 @@ namespace XRL.World.Parts
 		/// <summary>
 		/// Getter function for the "highlight vendors with items" setting.
 		/// </summary>
-		private bool ShouldHighlight => Options.GetOption("Ava_ShoppingList_HighlightVendorsWithItems").EqualsNoCase("Yes");
+		private bool ShouldHighlight => Options.GetOption("Ceres_ShoppingList_HighlightVendorsWithItems").EqualsNoCase("Yes");
 
 		/// <summary>
 		/// Getter function for the "proactively remove data disks" setting.
 		/// Could be expanded in the future.
 		/// </summary>
-		private bool ShouldProactivelyRemove => Options.GetOption("Ava_ShoppingList_ProactivelyRemoveItems").EqualsNoCase("Yes");
+		private bool ShouldProactivelyRemove => Options.GetOption("Ceres_ShoppingList_ProactivelyRemoveItems").EqualsNoCase("Yes");
 
 		/*
 		 * Each of these dictionaries is used to track things from the player's shopping list.
 		 * All of them use a blueprint/ID/etc as their key, and a display name as their value.
+		 * Using independent lists here instead of one giant list is a bit messy,
+		 * but it also lets us do specific logic checks without a bunch of tangled handling and overrides.
 		 */
 
 		/// <summary>

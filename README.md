@@ -6,6 +6,12 @@ Shopping List is licensed under the [GNU General Public License v3](http://www.g
 
 ## Changelog
 
+### TBD, to be released on next major update
+#### Version 1.2
+* Re-pathed all instances of `Ava` to `Ceres`.
+* Refactored mod parts for compatibility -- `Ceres_ShoppingList_Highlighter` is now an `IScribedPart`, while `Ceres_ShoppingList_ShoppingListPart` is now an `IPlayerPart` that is manually scribed.
+* Removed a temporary workaround that was used to prevent a Linux-exclusive bug where the shopping list part would be repeatedly duplicated. This bug was fixed in game version 206.75.
+
 ### 11 July, 2024
 #### Version 1.1
 * Fixed a harmless error that would occur when entering an invalid object ID.

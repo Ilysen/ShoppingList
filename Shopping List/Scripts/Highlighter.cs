@@ -49,7 +49,7 @@ namespace XRL.World.Parts
 			}
 			else
 				_flipped = false;
-			E.ApplyColors(_flipColor ? $"&{CachedHighlightColor.ToLower()}" : $"&{CachedHighlightColor}", 81);
+			E.ApplyColors(_flipColor ? $"&{CachedHighlightColor.ToLower()}" : $"&{CachedHighlightColor}", HeroMaker.ICON_COLOR_PRIORITY + 1);
 			return base.Render(E);
 		}
 
@@ -58,6 +58,7 @@ namespace XRL.World.Parts
 		/// instead of using it as-is.
 		/// </summary>
 		private bool _flipColor = false;
+
 		/// <summary>
 		/// Used for animating the highlighter's flashing. When <see cref="_flipColor"/> is changed, this value becomes <c>true</c>; and the next time
 		/// it would be changed, this value is set to <c>false</c> instead, and the cycle continues.
@@ -76,7 +77,7 @@ namespace XRL.World.Parts
 					return _cachedHighlightColor;
 				string newColor = Options.GetOption("Ceres_ShoppingList_HighlightColor");
 				// All of the other colors -- red, blue, green, etc -- all happen to start with the character that designates their color code
-				// Yellow, however, does not; the code for yellow is W, so we have to set it manually here instead of just fetching it quickly
+				// Yellow, however, does not; the code for yellow is W, so we have to set it manually here instead of just fetching it dynamically
 				if (newColor.EqualsNoCase("Yellow"))
 					newColor = "W";
 				else
@@ -91,7 +92,7 @@ namespace XRL.World.Parts
 		/// <br/><br/>
 		/// <b>This should never be used on its own</b> -- instead, use <see cref="CachedHighlightColor"/>.
 		/// </summary>
-		private string _cachedHighlightColor;
+		private static string _cachedHighlightColor;
 
 		/// <summary>
 		/// If this is <c>true</c> when the game renders a frame, then it will search the parent object's inventory for jade and save the result to <see cref="hasJade"/>,
@@ -102,7 +103,7 @@ namespace XRL.World.Parts
 		private bool ShouldUpdateObjectList = true;
 
 		/// <summary>
-		/// Whether or not the parent object's inventory has at least one item with <c>jade</c> in its name.
+		/// A list of <see cref="GameObject"/>s considered to be a part of the parent merchant's stock on our last refresh.
 		/// </summary>
 		internal List<GameObject> CachedObjects = new List<GameObject>();
 	}

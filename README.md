@@ -6,7 +6,7 @@ Shopping List is licensed under the [GNU General Public License v3](http://www.g
 
 ## Changelog
 
-### TBD, to be released on next major update
+### 23 September, 2024
 #### Version 1.2
 * Re-pathed all instances of `Ava` to `Ceres`.
 * Refactored mod parts for compatibility -- `Ceres_ShoppingList_Highlighter` is now an `IScribedPart`, while `Ceres_ShoppingList_ShoppingListPart` is now an `IPlayerPart` that is manually scribed.

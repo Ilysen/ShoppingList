@@ -12,6 +12,9 @@ namespace XRL.World.Parts
 {
 	/// <summary>
 	/// This part is added to the player object and handles all of the logic of the shopping list.
+	/// We use a part here instead of a game system so that we can have an attached activated ability for easy configuring.
+	/// <br/><br/>
+	/// At least in theory, I do technically stand by this code. At this point it's kind of its own thing, though. So it goes.
 	/// </summary>
 	[Serializable]
 	public class Ceres_ShoppingList_ShoppingListPart : IPlayerPart
@@ -325,7 +328,10 @@ namespace XRL.World.Parts
 			return base.HandleEvent(E);
 		}
 
-		public override bool HandleEvent(ReplicaCreatedEvent E)
+		// IN THEORY, this code should no longer be necessary. I *think* it was used as part of a workaround for a vanilla bug that's now fixed
+		// however, I do not actually know, so I am preserving it just in case
+		// in case of emergency, break glass
+		/*public override bool HandleEvent(ReplicaCreatedEvent E)
 		{
 			if (E.Object == ParentObject)
 				E.WantToRemove(this);
@@ -337,7 +343,7 @@ namespace XRL.World.Parts
 			if (CombinedWishlist.Count > 0 && E.Zone == The.ActiveZone)
 				CheckObjectsInZone(E.Zone);
 			return base.HandleEvent(E);
-		}
+		}*/
 
 		/// <summary>
 		/// Checks every object in the provided <see cref="Zone"/> to see if they're stocking anything from the shopping list.

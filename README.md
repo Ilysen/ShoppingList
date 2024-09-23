@@ -12,6 +12,7 @@ This should be the final update before game version 1.0!
 
 * Updated to work with game version 2.0.207.101.
 * The shopping list now re-scans the active zone after entries are added or removed from it, which should make it a lot easier to use.
+* Fixed the magenta colors of legendary creatures overriding the highlight color. They should now be affected like usual.
 * Fixed several harmless errors.
 * (internal) Re-pathed all instances of `Ava` to `Ceres`.
 * (internal) Refactored mod parts for compatibility -- `Ceres_ShoppingList_Highlighter` is now an `IScribedPart`, while `Ceres_ShoppingList_ShoppingListPart` is now an `IPlayerPart` that is manually scribed.

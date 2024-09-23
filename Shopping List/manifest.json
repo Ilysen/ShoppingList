@@ -2,7 +2,7 @@
 	"id": "Ceres_ShoppingList",
 	"title": "Shopping List",
 	"description": "Adds a configurable shopping list that'll alert you when a nearby merchant has something from it.",
-	"version": "1.1",
-	"author": "Ava",
+	"version": "1.2",
+	"author": "Ceres et al.",
 	"previewImage": "preview.png"
 }

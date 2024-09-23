@@ -8,9 +8,14 @@ Shopping List is licensed under the [GNU General Public License v3](http://www.g
 
 ### 23 September, 2024
 #### Version 1.2
-* Re-pathed all instances of `Ava` to `Ceres`.
-* Refactored mod parts for compatibility -- `Ceres_ShoppingList_Highlighter` is now an `IScribedPart`, while `Ceres_ShoppingList_ShoppingListPart` is now an `IPlayerPart` that is manually scribed.
-* Removed a temporary workaround that was used to prevent a Linux-exclusive bug where the shopping list part would be repeatedly duplicated. This bug was fixed in game version 206.75.
+This should be the final update before game version 1.0!
+
+* Updated to work with game version 2.0.207.101.
+* The shopping list now re-scans the active zone after entries are added or removed from it, which should make it a lot easier to use.
+* Fixed several harmless errors.
+* (internal) Re-pathed all instances of `Ava` to `Ceres`.
+* (internal) Refactored mod parts for compatibility -- `Ceres_ShoppingList_Highlighter` is now an `IScribedPart`, while `Ceres_ShoppingList_ShoppingListPart` is now an `IPlayerPart` that is manually scribed.
+* (internal) Removed a temporary workaround that was used to prevent a Linux-exclusive bug where the shopping list part would be repeatedly duplicated. This bug was fixed in game version 206.75.
 
 ### 11 July, 2024
 #### Version 1.1

@@ -64,8 +64,7 @@ namespace XRL.World.Parts
 
 		public override void Register(GameObject Object, IEventRegistrar Registrar)
 		{
-			Object.RegisterPartEvent(this, "ObjectAddedToPlayerInventory");
-			base.Register(Object, Registrar);
+			Registrar.Register("ObjectAddedToPlayerInventory");
 		}
 
 		public override bool FireEvent(Event E)
@@ -98,20 +97,21 @@ namespace XRL.World.Parts
 
 		public override bool HandleEvent(CommandEvent E)
 		{
+			bool shouldRefresh = false;
 			if (E.Command == ShoppingListCommand && E.Actor == ParentObject)
 			{
 			ConfigureList:
-				var CachedList = CombinedWishlist;
+				var cachedList = CombinedWishlist;
 				switch (Popup.PickOption("What would you like to do with your shopping list?",
-					Options: new List<string>() { $"Show it ({CachedList.Count} item{(CachedList.Count == 1 ? "" : "s")})", "Add something", "Remove something", "Check vendors in current zone", "Import data from code", "Export data to code" },
+					Options: new List<string>() { $"Show it ({cachedList.Count} item{(cachedList.Count == 1 ? "" : "s")})", "Add something", "Remove something", "Check vendors in current zone", "Import data from code", "Export data to code" },
 					Hotkeys: new List<char>() { '1', '2', '3', '4', '5', '6' },
 					AllowEscape: true))
 				{
 					case 0:
-						if (CachedList.Count == 0)
+						if (cachedList.Count == 0)
 							Popup.Show("Your shopping list is empty.");
 						else
-							Popup.Show("Current shopping list: \n\n" + string.Join("\n", CachedList.Values));
+							Popup.Show("Current shopping list: \n\n" + string.Join("\n", cachedList.Values));
 						goto ConfigureList;
 					case 1:
 					QueryBlueprint:
@@ -153,6 +153,7 @@ namespace XRL.World.Parts
 								{
 									AddToWishlist(ref ModdedWishlist, me.Part, display);
 									Popup.Show("Added items modded to be {{W|" + me.TinkerDisplayName + "}} to your shopping list.");
+									shouldRefresh = true;
 								}
 								goto ConfigureList;
 							}
@@ -170,6 +171,7 @@ namespace XRL.World.Parts
 								{
 									AddToWishlist(ref ModWishlist, data.Part, display);
 									Popup.Show("Added data disks for the {{W|" + data.TinkerDisplayName + "}} mod to your shopping list.");
+									shouldRefresh = true;
 								}
 								goto ConfigureList;
 							}
@@ -183,6 +185,7 @@ namespace XRL.World.Parts
 							{
 								AddToWishlist(ref LiquidWishlist, key, display);
 								Popup.Show($"Added {display} to your shopping list.");
+								shouldRefresh = true;
 							}
 							goto ConfigureList;
 						}
@@ -198,6 +201,7 @@ namespace XRL.World.Parts
 								{
 									AddToWishlist(ref ItemWishlist, key, display);
 									Popup.Show($"Added {display} to your shopping list.");
+									shouldRefresh = true;
 								}
 							}
 							else
@@ -209,15 +213,18 @@ namespace XRL.World.Parts
 									case 0:
 										AddToWishlist(ref ItemWishlist, key, display);
 										Popup.Show($"Added {display} to your shopping list.");
+										shouldRefresh = true;
 										break;
 									case 1:
 										AddToWishlist(ref ItemWishlist, key, display);
 										AddToWishlist(ref BlueprintWishlist, bp.Name, diskName);
 										Popup.Show($"Added {display} (item and data disk) to your shopping list.");
+										shouldRefresh = true;
 										break;
 									case 2:
 										AddToWishlist(ref BlueprintWishlist, bp.Name, diskName);
 										Popup.Show($"Added data disks for {display} to your shopping list.");
+										shouldRefresh = true;
 										break;
 								}
 							}
@@ -226,18 +233,18 @@ namespace XRL.World.Parts
 						Popup.Show($"Item blueprint not found for query '{s}'. Check your spelling or narrow your search.");
 						goto ConfigureList;
 					case 2:
-						if (CachedList.Count == 0)
+						if (cachedList.Count == 0)
 							Popup.Show("There are no items in your shopping list.");
 						else
 						{
 							Dictionary<string, string> toRemove = new Dictionary<string, string>();
 							List<int> indexesToRemove = new List<int>();
-							var chosenEntries = Popup.PickSeveral("Pick the shopping list entries you'd like to remove.", Options: CachedList.Values.ToArray(), AllowEscape: true);
+							var chosenEntries = Popup.PickSeveral("Pick the shopping list entries you'd like to remove.", Options: cachedList.Values.ToArray(), AllowEscape: true);
 							foreach (var (Selected, Amount) in chosenEntries)
 								indexesToRemove.Add(Selected);
 							if (!indexesToRemove.IsNullOrEmpty())
 								foreach (int i in indexesToRemove)
-									toRemove.Add(CachedList.ElementAt(i).Key, CachedList.ElementAt(i).Value);
+									toRemove.Add(cachedList.ElementAt(i).Key, cachedList.ElementAt(i).Value);
 							if (toRemove.Count > 0)
 							{
 								Popup.Show($"Removing the following from your shopping list:\n\n{string.Join("\n", toRemove.Values)}");
@@ -249,6 +256,7 @@ namespace XRL.World.Parts
 									ModdedWishlist.Remove(kvp.Key.Replace("Modded:", ""));
 									BlueprintWishlist.Remove(kvp.Key.Replace("ItemDisk:", ""));
 								}
+								shouldRefresh = true;
 							}
 						}
 						goto ConfigureList;
@@ -325,6 +333,8 @@ namespace XRL.World.Parts
 						goto ConfigureList;
 				}
 			}
+			if (shouldRefresh)
+				CheckObjectsInZone(ParentObject.CurrentZone);
 			return base.HandleEvent(E);
 		}
 
@@ -336,14 +346,14 @@ namespace XRL.World.Parts
 			if (E.Object == ParentObject)
 				E.WantToRemove(this);
 			return base.HandleEvent(E);
-		}
+		}*/
 
 		public override bool HandleEvent(ZoneActivatedEvent E)
 		{
 			if (CombinedWishlist.Count > 0 && E.Zone == The.ActiveZone)
 				CheckObjectsInZone(E.Zone);
 			return base.HandleEvent(E);
-		}*/
+		}
 
 		/// <summary>
 		/// Checks every object in the provided <see cref="Zone"/> to see if they're stocking anything from the shopping list.

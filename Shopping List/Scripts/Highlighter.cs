@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using XRL.Core;
 using XRL.UI;
 
@@ -8,14 +7,19 @@ namespace XRL.World.Parts
 	/// <summary>
 	/// This is a visual part added to any creature that <see cref="Ceres_ShoppingList_ShoppingListPart"/> flags as having items from the configured shopping list.
 	/// It is automatically removed if all objects in the list <see cref="CachedObjects"/> (populated on creation) are null or not present in the inventory anymore.
+	/// <br/><br/>
+	/// This part is <b>not serialized</b>, and will be removed on exit. The shopping list will add and remove highlighters as needed.
 	/// </summary>
-	[Serializable]
-	public class Ceres_ShoppingList_Highlighter : IScribedPart
+	public class Ceres_ShoppingList_Highlighter : IPart
 	{
 		public override void Register(GameObject Object, IEventRegistrar Registrar)
 		{
-			Object.RegisterPartEvent(this, "EncumbranceChanged");
-			base.Register(Object, Registrar);
+			Registrar.Register("EncumbranceChanged");
+		}
+
+		public override void ApplyUnregistrar(GameObject Object, bool Active = false)
+		{
+			base.ApplyUnregistrar(Object, Active);
 		}
 
 		public override bool FireEvent(Event E)
@@ -29,7 +33,7 @@ namespace XRL.World.Parts
 		{
 			if (ShouldUpdateObjectList)
 			{
-				foreach (GameObject go in CachedObjects)
+				foreach (GameObject go in CachedObjects.ToArray())
 					if (go == null || !ParentObject.Inventory.HasObject(go))
 						CachedObjects.Remove(go);
 				if (CachedObjects.Count == 0)
@@ -89,10 +93,12 @@ namespace XRL.World.Parts
 
 		/// <summary>
 		/// The code for the color that this actor will be highlighted in, if applicable.
+		/// This is deliberately non-static; setting it to static would mean that a game restart is required to change it via the associated setting,
+		/// but intentionally skipping out on it allows for us to 
 		/// <br/><br/>
 		/// <b>This should never be used on its own</b> -- instead, use <see cref="CachedHighlightColor"/>.
 		/// </summary>
-		private static string _cachedHighlightColor;
+		private string _cachedHighlightColor;
 
 		/// <summary>
 		/// If this is <c>true</c> when the game renders a frame, then it will search the parent object's inventory for jade and save the result to <see cref="hasJade"/>,
@@ -100,7 +106,7 @@ namespace XRL.World.Parts
 		/// <br/><br/>
 		/// This is set to <c>true</c> whenever an event of ID <c>"EncumbranceChanged"</c> is fired on the parent object.
 		/// </summary>
-		private bool ShouldUpdateObjectList = true;
+		private bool ShouldUpdateObjectList = false;
 
 		/// <summary>
 		/// A list of <see cref="GameObject"/>s considered to be a part of the parent merchant's stock on our last refresh.

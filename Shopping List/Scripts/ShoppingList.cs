@@ -53,18 +53,19 @@ namespace XRL.World.Parts
 			Reader.ReadNamedFields(this, GetType());
 		}
 
+
 		public override bool WantEvent(int ID, int cascade)
 		{
 			return base.WantEvent(ID, cascade) ||
-				ID == AfterPlayerBodyChangeEvent.ID ||
 				ID == CommandEvent.ID ||
-				ID == ReplicaCreatedEvent.ID ||
+				ID == GetDebugInternalsEvent.ID ||
 				ID == ZoneActivatedEvent.ID;
 		}
 
 		public override void Register(GameObject Object, IEventRegistrar Registrar)
 		{
-			Registrar.Register("ObjectAddedToPlayerInventory");
+			// This is currenty disabled because it causes save errors when attempting to save with clones.
+			//Registrar.Register("ObjectAddedToPlayerInventory");
 		}
 
 		public override bool FireEvent(Event E)
@@ -338,15 +339,11 @@ namespace XRL.World.Parts
 			return base.HandleEvent(E);
 		}
 
-		// IN THEORY, this code should no longer be necessary. I *think* it was used as part of a workaround for a vanilla bug that's now fixed
-		// however, I do not actually know, so I am preserving it just in case
-		// in case of emergency, break glass
-		/*public override bool HandleEvent(ReplicaCreatedEvent E)
+		public override bool HandleEvent(GetDebugInternalsEvent E)
 		{
-			if (E.Object == ParentObject)
-				E.WantToRemove(this);
+			E.AddEntry(this, "CombinedWishlist", $"{CombinedWishlist.Count} entries");
 			return base.HandleEvent(E);
-		}*/
+		}
 
 		public override bool HandleEvent(ZoneActivatedEvent E)
 		{

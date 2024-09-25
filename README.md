@@ -6,6 +6,11 @@ Shopping List is licensed under the [GNU General Public License v3](http://www.g
 
 ## Changelog
 
+### 25 September, 2024
+#### Version 1.2.1
+* Fixed a bug that caused save errors when clones of the player are present.
+  * The option to remove data disks from the list when you acquire them has been temporarily removed as a result of this. It'll return later!
+
 ### 23 September, 2024
 #### Version 1.2
 This should be the final update before game version 1.0!

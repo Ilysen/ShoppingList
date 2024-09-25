@@ -17,11 +17,6 @@ namespace XRL.World.Parts
 			Registrar.Register("EncumbranceChanged");
 		}
 
-		public override void ApplyUnregistrar(GameObject Object, bool Active = false)
-		{
-			base.ApplyUnregistrar(Object, Active);
-		}
-
 		public override bool FireEvent(Event E)
 		{
 			if (E.ID == "EncumbranceChanged")

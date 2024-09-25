@@ -10,11 +10,11 @@
 			If "Highlight vendors with shopping list items" is enabled, they will be highlighted in this color.
 		</helptext>
 	</option>
-	<option ID="Ceres_ShoppingList_ProactivelyRemoveItems"
+	<!--<option ID="Ceres_ShoppingList_ProactivelyRemoveItems"
 		DisplayText="Remove data disks from the list once you acquire them" Category="Shopping List"
 		Type="Checkbox" Default="Yes">
 		<helptext>
 			This applies when you get the disk, not when you use it.
 		</helptext>
-	</option>
+	</option>-->
 </options>

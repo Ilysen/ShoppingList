@@ -368,13 +368,21 @@ namespace XRL.World.Parts
 		internal void CheckObjectInventory(GameObject go)
 		{
 			SortedList<string, GameObject> stockedObjects = new SortedList<string, GameObject>();
+			List<GameObject> unidentifiedArtifacts = new List<GameObject>();
+			bool shouldShowUnidentified = HighlightUnidentifiedArtifacts;
 			foreach (GameObject go2 in go.Inventory.Objects.Where(x => TradeUI.ValidForTrade(x, go)))
 			{
 				GameObjectBlueprint bp = go2.GetBlueprint();
-				if (!UnderstandsObject(go2) || !go2.WillTrade())
+				if (!go2.WillTrade())
 					continue;
+				if (!UnderstandsObject(go2))
+				{
+					if (shouldShowUnidentified)
+						unidentifiedArtifacts.Add(go2);
+					continue;
+				}
 				string goName = go2.an();
-				if ((ItemWishlist.ContainsKey(bp.Name) || ItemWishlist.ContainsKey(bp.Inherits)) && !stockedObjects.ContainsValue(go2))
+				if ((ItemWishlist.ContainsKey(bp.Name) || ItemWishlist.ContainsKey(bp.Inherits)) && !stockedObjects.ContainsValue(go2) && !stockedObjects.ContainsKey(goName))
 					stockedObjects.Add(goName, go2);
 				if (go2.TryGetPart(out DataDisk dd))
 				{
@@ -402,15 +410,27 @@ namespace XRL.World.Parts
 					}
 				}
 			}
-			if (stockedObjects.Count == 0)
+			int totalArtifacts = unidentifiedArtifacts.Count;
+			bool hasArtifacts = totalArtifacts > 0;
+			bool hasItems = stockedObjects.Count > 0;
+			if (!hasItems && (!shouldShowUnidentified || !hasArtifacts))
 			{
 				go.RemovePart<Ceres_ShoppingList_Highlighter>();
 				return;
 			}
 			string directionToThing = go.CurrentZone == The.Player.CurrentZone ? The.Player.DescribeDirectionToward(go) : "in a nearby zone";
-			MessageQueue.AddPlayerMessage($"{go.The + go.ShortDisplayName} {directionToThing} is stocking {Grammar.MakeAndList(stockedObjects.Keys.ToArray())} from your shopping list!", "M");
+			MessageQueue.AddPlayerMessage(
+				$"{go.The + go.ShortDisplayName} {directionToThing} is stocking " +
+				$"{(hasArtifacts ? $"{totalArtifacts} unidentified artifact{(totalArtifacts == 1 ? "" : "s")}" : string.Empty)}" +
+				$"{(hasItems ? (hasArtifacts ? " and " : string.Empty) + Grammar.MakeAndList(stockedObjects.Keys.ToArray()) + " from your shopping list" : string.Empty)}" +
+				"!", "M");
 			if (ShouldHighlight)
-				go.RequirePart<Ceres_ShoppingList_Highlighter>().CachedObjects = stockedObjects.Values.ToList();
+			{
+				var newCachedObjects = new List<GameObject>();
+				newCachedObjects.AddRange(stockedObjects.Values.ToList());
+				newCachedObjects.AddRange(unidentifiedArtifacts);
+				go.RequirePart<Ceres_ShoppingList_Highlighter>().CachedObjects = newCachedObjects;
+			}
 		}
 
 		/// <summary>
@@ -590,6 +610,12 @@ namespace XRL.World.Parts
 		/// Could be expanded in the future.
 		/// </summary>
 		private bool ShouldProactivelyRemove => Options.GetOption("Ceres_ShoppingList_ProactivelyRemoveItems").EqualsNoCase("Yes");
+
+		/// <summary>
+		/// Getter function for the "alert when vendors have unidentified artifacts" setting.
+		/// Could be expanded in the future.
+		/// </summary>
+		private bool HighlightUnidentifiedArtifacts => Options.GetOption("Ceres_ShoppingList_SeeUnidentifiedArtifacts").EqualsNoCase("Yes");
 
 		/*
 		 * Each of these dictionaries is used to track things from the player's shopping list.

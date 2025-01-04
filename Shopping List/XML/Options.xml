@@ -4,6 +4,10 @@
 		DisplayText="Highlight vendors with shopping list items" Category="Shopping List"
 		Type="Checkbox" Default="Yes">
 	</option>
+	<option ID="Ceres_ShoppingList_SeeUnidentifiedArtifacts"
+		DisplayText="Alert when vendors have unidentified artifacts" Category="Shopping List"
+		Type="Checkbox" Default="No">
+	</option>
 	<option ID="Ceres_ShoppingList_HighlightColor" DisplayText="Highlight color (changes on save/load)" Category="Shopping List"
 		Type="Combo" Values="Red,Orange,Yellow,Green,Blue,Cyan,Magenta,White" Default="Magenta">
 		<helptext>

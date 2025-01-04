@@ -6,6 +6,11 @@ Shopping List is licensed under the [GNU General Public License v3](http://www.g
 
 ## Changelog
 
+### 4 January, 2025
+Happy new year!
+#### Version 1.3
+* Added a toggleable setting to alert when vendors have unidentified artifacts in addition to logged items, as requested by Steam user Lustrecia.
+
 ### 25 September, 2024
 #### Version 1.2.1
 * Fixed a bug that caused save errors when clones of the player are present.
